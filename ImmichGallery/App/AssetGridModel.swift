@@ -702,8 +702,17 @@ final class AssetGridModel {
         index[id].map { (sections[$0.section].id, $0.item) }
     }
 
+    /// Every photo, as in Photos: the loaded ones now, and the months not loaded yet as they load, unless the selection
+    /// changes meanwhile.
     func selectAll() {
-        selection = Set(sections.flatMap { $0.assets ?? [] }.map(\.id))
+        let loaded = Set(sections.flatMap { $0.assets ?? [] }.map(\.id))
+        selection = loaded
+        guard sections.contains(where: { $0.assets == nil }) || (isPaged && nextPage != nil) else { return }
+        let generation = loadGeneration
+        Task { [weak self] in
+            guard let self, let all = try? await viewerAllItems(), generation == loadGeneration, selection == loaded else { return }
+            selection = Set(all.map(\.id))
+        }
     }
 
     func open(_ id: String) {

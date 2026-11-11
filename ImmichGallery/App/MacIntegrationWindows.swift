@@ -106,6 +106,7 @@ final class MacIntegrationLifecycle: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MacSelectAll.install()
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in MacTransferCache.prune() }
         // A widget click can launch the app without a library window, whose view would restore the account.
         Task { await MacIntegrationRouter.shared.app?.restore() } // Widget

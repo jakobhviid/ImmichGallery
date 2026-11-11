@@ -137,6 +137,7 @@ struct AssetGridHost<Header: View>: View {
         .gridViewOptionsReloader(model)
         .onChange(of: session.upload.revision) { Task { await model.reload() } } // Upload
         .focusedSceneValue(\.gridModel, model)
+        .selectAllTarget(model, enabled: overview == nil)
         .confirmationDialog(deleteTitle, isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
             Button(model.source == .trash || model.source == .locked ? "Delete Permanently" : "Delete", role: .destructive) {
                 let ids = pendingDelete ?? []

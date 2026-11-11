@@ -1,8 +1,8 @@
 import Foundation
 
-/// Library's Years, Months and All Photos, as in Photos.
+/// Library's All Photos, Years and Months, as in Photos; everything first, then the overviews.
 enum LibraryMode: String, CaseIterable, Identifiable {
-    case years, months, all
+    case all, years, months
     var id: Self { self }
     var title: LocalizedStringResource {
         switch self {
