@@ -18,6 +18,7 @@ struct SearchView: View {
                     pipeline: session.pipeline, query: query,
                     recent: history.entries, places: Array(explore.flatMap(\.items).filter { $0.data.visibility != "locked" }.prefix(12)),
                     controls: searchScopeControls, select: selectQuery, clearHistory: history.clear)
+                .pageToolbar("searchLanding")
             } else {
                 AssetGridContainer(source: .filteredSearch(query), title: Text("Search")) {
                     searchControls
@@ -119,14 +120,15 @@ struct SearchView: View {
                         ForEach(query.filterChips, id: \.id) { chip in
                             HStack(spacing: 4) {
                                 Button(chip.title) { draft = query; showFilters = true }
-                                Button { query.remove(chip.id) } label: { Image(systemName: "xmark.circle.fill") }
+                                Button { withAnimation(.smooth(duration: 0.25)) { query.remove(chip.id) } } label: { Image(systemName: "xmark.circle.fill") }
                                     .accessibilityLabel("Remove \(chip.title) filter")
                             }
                             .buttonStyle(.plain).padding(6).background(.quaternary, in: Capsule())
                         }
                         Button("Clear Filters") {
                             let text = query.text; let mode = query.mode; let sort = query.sort
-                            query = SearchQuery(); query.text = text; query.mode = mode; query.sort = sort
+                            var cleared = SearchQuery(); cleared.text = text; cleared.mode = mode; cleared.sort = sort
+                            withAnimation(.smooth(duration: 0.25)) { query = cleared }
                         }
                     }.padding(.horizontal, 16).padding(.bottom, 8)
                 }
@@ -137,27 +139,5 @@ struct SearchView: View {
             }
             Divider()
         }
-    }
-}
-
-struct SearchFieldSuggestions: View {
-    @Environment(LibrarySession.self) private var session
-    let text: String
-    @State private var history = SearchHistory()
-
-    private var completions: [String] {
-        var seen: Set<String> = []
-        return Array(history.entries.compactMap { entry in
-            guard !entry.text.isEmpty, text.isEmpty || entry.text.localizedCaseInsensitiveContains(text),
-                  seen.insert(entry.text).inserted else { return nil as String? }
-            return entry.text
-        }.prefix(8))
-    }
-
-    var body: some View {
-        ForEach(completions, id: \.self) { text in
-            Text(text).searchCompletion(text)
-        }
-        .onAppear { history.load(session: session) }
     }
 }

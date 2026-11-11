@@ -16,7 +16,7 @@ struct PartnersView: View {
                 if sharing.receivedPartners.isEmpty { Text("No partners are sharing with you.").foregroundStyle(.secondary) }
                 ForEach(sharing.receivedPartners) { partner in
                     HStack {
-                        NavigationLink(partner.name) { AssetGridContainer(source: .partner(partner.id), title: Text(partner.name)) }
+                        NavigationLink(partner.name, value: GridRoute(source: .partner(partner.id), title: partner.name))
                         Toggle("Show in timeline", isOn: Binding(get: {
                             session.sharing.receivedPartners.first { $0.id == partner.id }?.inTimeline ?? false
                         }, set: { value in
@@ -40,13 +40,15 @@ struct PartnersView: View {
             }
         }
         .navigationTitle("Partner Sharing")
-        .toolbar {
-            Button("Add Partner…", systemImage: "person.badge.plus") {
-                Task {
-                    do { users = try await session.client.sharingUsers(); picking = true }
-                    catch { sharing.error = error.localizedDescription }
-                }
-            }.disabled(sharing.busy || !sharing.partnersAvailable)
+        .pageToolbar("partners") {
+            ToolbarItem(id: "addPartner") {
+                Button("Add Partner…", systemImage: "person.badge.plus") {
+                    Task {
+                        do { users = try await session.client.sharingUsers(); picking = true }
+                        catch { sharing.error = error.localizedDescription }
+                    }
+                }.disabled(sharing.busy || !sharing.partnersAvailable)
+            }
         }
         .sheet(isPresented: $picking) {
             VStack(alignment: .leading, spacing: 16) {
@@ -63,7 +65,7 @@ struct PartnersView: View {
                 Button("Cancel") { picking = false }.keyboardShortcut(.cancelAction)
             }.padding(24).frame(width: 440, height: 400).sharingError()
         }
-        .confirmationDialog("Stop sharing your library?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
+        .confirmationDialog("Stop sharing your library?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
             Button("Remove Partner", role: .destructive) {
                 if let partner = removing { Task { await sharing.perform { try await session.client.removeSharingPartner(partner.id) }; session.invalidateGrids() } }
             }

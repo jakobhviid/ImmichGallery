@@ -35,11 +35,16 @@ struct PeopleFaceOverlay: View {
             }
         }
         .allowsHitTesting(false)
-        .toolbar {
+        .animation(.easeInOut(duration: 0.2), value: visible && coordinatesMatch)
+        .toolbar(id: "faces") {
             if session.features.facialRecognition && supported {
-                Button { showingList = true } label: { Label("Manage Faces", systemImage: "person.2") }
-                Toggle(isOn: $visible) { Label("Show Faces", systemImage: "person.crop.rectangle") }
-                    .help("Show faces and manage people")
+                ToolbarItem(id: "manageFaces") {
+                    Button { showingList = true } label: { Label("Manage Faces", systemImage: "person.2") }
+                }
+                ToolbarItem(id: "showFaces") {
+                    Toggle(isOn: $visible) { Label("Show Faces", systemImage: "person.crop.rectangle") }
+                        .help("Show faces and manage people")
+                }
             }
         }
         .task(id: visible) { if visible { await load() } }
@@ -75,7 +80,7 @@ struct PeopleFaceOverlay: View {
                 NotificationCenter.default.post(name: .peopleChanged, object: session.services)
             }
         }
-        .confirmationDialog("Remove Face?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
+        .confirmationDialog("Remove Face?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
             Button("Remove Face", role: .destructive) {
                 guard let face = removing else { return }
                 removing = nil

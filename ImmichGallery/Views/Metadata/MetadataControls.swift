@@ -77,6 +77,8 @@ struct MetadataInspectorControls: View {
                 MetadataMenuItems(ids: [asset.id], canEditImage: asset.type == .image && asset.livePhotoVideoId == nil)
             }
         }
+        .animation(.smooth(duration: 0.2), value: description != (asset.exifInfo?.description ?? ""))
+        .animation(.smooth(duration: 0.2), value: ratingsEnabled)
         .disabled(session.metadata.busy || asset.isTrashed || session.user?.id == nil || asset.ownerId != session.user?.id)
         .task(id: asset.id) {
             description = asset.exifInfo?.description ?? ""

@@ -50,7 +50,7 @@ struct AssetsStackBrowser: View {
                 ScrollView(.horizontal) {
                     HStack {
                         ForEach(stack.assets) { member in
-                            Button { selected = member.id } label: {
+                            Button { withAnimation(.easeInOut(duration: 0.2)) { selected = member.id } } label: {
                                 ThumbnailCell(asset: AssetItem(member), isSelected: selected == member.id, size: .thumbnail)
                                     .frame(width: 80, height: 80)
                             }.buttonStyle(.plain).help(member.originalFileName)

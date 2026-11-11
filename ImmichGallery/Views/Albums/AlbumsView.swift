@@ -11,7 +11,7 @@ struct AlbumsView: View {
     @AppStorage("albums.view") private var viewMode = AlbumsViewMode.cover
     @AppStorage("albums.collapsedGroups") private var collapsedGroups = "{}"
     @State private var listSelection: Set<Album.ID> = []
-    @State private var openedAlbum: Album?
+    @Environment(PageNavigation.self) private var navigation
 
     private var arrangement: AlbumsArrangement {
         AlbumsArrangement(filter: filter, groupBy: groupBy, groupOrder: groupOrder, sortBy: sortBy, sortOrder: sortOrder)
@@ -41,12 +41,13 @@ struct AlbumsView: View {
         .navigationDestination(for: Album.self) { album in
             AlbumDetailView(id: album.id)
         }
-        .navigationDestination(item: $openedAlbum) { album in
-            AlbumDetailView(id: album.id)
-        }
-        .toolbar {
-            ToolbarItem { viewOptions }
-            ToolbarItem { Button { session.albumActions.newAlbum() } label: { Label("New Album", systemImage: "plus") } }
+        .pageToolbar("albums") {
+            ToolbarItem(id: "show", placement: .principal) {
+                // The albums move to their new places.
+                ToolbarModePicker(selection: $filter.animation(.smooth(duration: 0.35)), options: AlbumsFilter.allCases) { $0.title }
+            }
+            ToolbarItem(id: "viewOptions") { viewOptions }
+            ToolbarItem(id: "newAlbum") { Button { session.albumActions.newAlbum() } label: { Label("New Album", systemImage: "plus") } }
         }
         .task { await session.reloadAlbums() }
     }
@@ -76,7 +77,7 @@ struct AlbumsView: View {
                             Button {
                                 var groups = collapsed
                                 groups.toggle(group.id, in: groupBy.collapsingKey)
-                                collapsedGroups = groups.stored
+                                withAnimation(.smooth(duration: 0.3)) { collapsedGroups = groups.stored }
                             } label: {
                                 SectionHeader(title: title(header), disclosure: isCollapsed ? .collapsed : .expanded, count: group.albums.count)
                                     .contentShape(Rectangle())
@@ -127,7 +128,7 @@ struct AlbumsView: View {
                 CrosslinkMenuItems(item: .album(id)) // Crosslink
             }
         } primaryAction: { ids in
-            openedAlbum = session.albums.first { ids.contains($0.id) }
+            if let album = session.albums.first(where: { ids.contains($0.id) }) { navigation.open(album) }
         }
     }
 
@@ -171,12 +172,8 @@ struct AlbumsView: View {
 
     private var viewOptions: some View {
         Menu {
-            Picker("View", selection: $viewMode) {
+            Picker("View", selection: $viewMode.animation(.smooth(duration: 0.3))) {
                 ForEach(AlbumsViewMode.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.inline)
-            Picker("Show", selection: $filter) {
-                ForEach(AlbumsFilter.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.inline)
             // No Section around these: an inline picker in a menu already shows its label as the heading.
@@ -185,8 +182,10 @@ struct AlbumsView: View {
                     get: { arrangement.effectiveGroupBy },
                     set: { option in
                         guard groupBy != option else { return }
-                        groupBy = option
-                        groupOrder = option.defaultOrder
+                        withAnimation(.smooth(duration: 0.35)) {
+                            groupBy = option
+                            groupOrder = option.defaultOrder
+                        }
                     }
                 )) {
                     ForEach(AlbumsGroupBy.allCases) { option in
@@ -194,19 +193,19 @@ struct AlbumsView: View {
                     }
                 }
                 .pickerStyle(.inline)
-                orderPicker("Group Order", $groupOrder).disabled(arrangement.effectiveGroupBy == .none)
+                orderPicker("Group Order", $groupOrder.animation(.smooth(duration: 0.35))).disabled(arrangement.effectiveGroupBy == .none)
                 if viewMode == .cover {
                     let groupBy = arrangement.effectiveGroupBy
                     Button("Expand All Groups") {
                         var groups = collapsed
                         groups.set([], in: groupBy.collapsingKey)
-                        collapsedGroups = groups.stored
+                        withAnimation(.smooth(duration: 0.3)) { collapsedGroups = groups.stored }
                     }
                     .disabled(groupBy == .none)
                     Button("Collapse All Groups") {
                         var groups = collapsed
                         groups.set(arrangement.groups(session.albums, userID: session.user?.id).map(\.id), in: groupBy.collapsingKey)
-                        collapsedGroups = groups.stored
+                        withAnimation(.smooth(duration: 0.3)) { collapsedGroups = groups.stored }
                     }
                     .disabled(groupBy == .none)
                 }
@@ -216,18 +215,21 @@ struct AlbumsView: View {
                     get: { sortBy },
                     set: { option in
                         guard sortBy != option else { return }
-                        sortBy = option
-                        sortOrder = option.defaultOrder
+                        withAnimation(.smooth(duration: 0.35)) {
+                            sortBy = option
+                            sortOrder = option.defaultOrder
+                        }
                     }
                 )) {
                     ForEach(AlbumsSortBy.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.inline)
-                orderPicker("Album Order", $sortOrder)
+                orderPicker("Album Order", $sortOrder.animation(.smooth(duration: 0.35)))
             }
         } label: {
-            Label("View Options", systemImage: filter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+            Label("View Options", systemImage: "line.3.horizontal.decrease")
         }
+        .menuIndicator(.hidden)
         .help("View Options")
     }
 

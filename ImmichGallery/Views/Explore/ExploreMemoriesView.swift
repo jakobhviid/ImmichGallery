@@ -28,6 +28,7 @@ struct ExploreMemoriesView: View {
             }.padding()
             if hasMore { Button("Load More") { Task { await load() } }.disabled(busy) }
         }
+        .pageToolbar("memories")
         .task {
             do {
                 let preferences = try await session.client.explorePreferences()
@@ -36,11 +37,11 @@ struct ExploreMemoriesView: View {
                 await load()
             } catch { self.error = error.localizedDescription }
         }
-        .confirmationDialog("Delete Memory?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+        .confirmationDialog("Delete Memory?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button("Delete Memory", role: .destructive) {
                 guard let memory = deleting else { return }
                 Task {
-                    do { try await session.client.exploreDeleteMemory(memory.id); memories.removeAll { $0.id == memory.id } }
+                    do { try await session.client.exploreDeleteMemory(memory.id); withAnimation(.smooth(duration: 0.35)) { memories.removeAll { $0.id == memory.id } } }
                     catch { self.error = error.localizedDescription }
                 }
             }
@@ -71,12 +72,18 @@ struct ExploreMemoryPlayer: View {
     @State private var index = 0
     @State private var paused = false
     @State private var image: CGImage?
+    /// Which photo `image` is, so the slides cross-fade by photo.
+    @State private var imageID: String?
     @State private var error: String?
     private var asset: AssetResponse? { memory.assets.indices.contains(index) ? memory.assets[index] : nil }
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.black
-            if let image { Image(decorative: image, scale: 1).resizable().scaledToFit().padding(.bottom, 80) }
+            if let image {
+                Image(decorative: image, scale: 1).resizable().scaledToFit().padding(.bottom, 80)
+                    .id(imageID)
+                    .transition(.opacity)
+            }
             VStack {
                 HStack {
                     Text(memory.title)
@@ -94,7 +101,9 @@ struct ExploreMemoryPlayer: View {
                         Task {
                             do {
                                 try await session.client.exploreRemoveMemoryAsset(memory.id, asset: asset.id)
-                                memory.assets.removeAll { $0.id == asset.id }; index = min(index, max(0, memory.assets.count - 1))
+                                withAnimation(.smooth(duration: 0.3)) {
+                                    memory.assets.removeAll { $0.id == asset.id }; index = min(index, max(0, memory.assets.count - 1))
+                                }
                             } catch { self.error = error.localizedDescription }
                         }
                     }.disabled(asset == nil)
@@ -108,8 +117,11 @@ struct ExploreMemoryPlayer: View {
             image = nil
         }
         .task(id: "\(asset?.id ?? "")-\(session.metadata.imageRevision)") {
-            image = nil
-            if let asset { image = await session.pipeline.thumbnail(asset.id, size: .preview) }
+            // The previous photo stays until the next has loaded, then they cross-fade, without a black frame between.
+            guard let asset else { image = nil; return }
+            let loaded = await session.pipeline.thumbnail(asset.id, size: .preview)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.5)) { image = loaded; imageID = asset.id }
         }
         .task(id: "\(paused)-\(index)") {
             guard !paused else { return }

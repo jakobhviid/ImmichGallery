@@ -28,7 +28,8 @@ struct RemoteThumbnail: View {
                 if image == nil {
                     let loaded = await pipeline.thumbnail(assetID, size: size)
                     guard !Task.isCancelled else { return }
-                    image = loaded
+                    // Fades in when it arrives; from the cache it is just there.
+                    withAnimation(.easeOut(duration: 0.2)) { image = loaded }
                 }
             }
     }

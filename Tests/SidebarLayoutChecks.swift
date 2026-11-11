@@ -34,13 +34,6 @@ import Foundation
         precondition(layout.move(.map, to: .collections))
         precondition(layout.links(in: .collections) == [.map])
         precondition(SidebarLayout().links(in: .photos).first == .search)
-        // The reference video shows insertion boundaries during hover and commits only on release.
-        for height in [24.0, 32.0, 48.0] {
-            precondition(SidebarInsertionEdge(locationY: -2, rowHeight: height) == .before)
-            precondition(SidebarInsertionEdge(locationY: height / 2, rowHeight: height) == .before)
-            precondition(SidebarInsertionEdge(locationY: height / 2 + 0.1, rowHeight: height) == .after)
-            precondition(SidebarInsertionEdge(locationY: height + 2, rowHeight: height) == .after)
-        }
         var dropLayout = SidebarLayout()
         // Move a lower row upwards, as People & Pets moves above Map in the reference.
         precondition(dropLayout.move(.videos, to: .photos, relativeTo: .library))
@@ -49,6 +42,24 @@ import Foundation
         precondition(dropLayout.move(.videos, to: .photos, relativeTo: .favorites, after: true))
         precondition(dropLayout.links(in: .photos) == [.search, .library, .favorites, .videos])
         precondition(!dropLayout.move(.videos, to: .photos, relativeTo: .favorites, after: true))
+        // A list drop reports an index among the rows shown, the dragged row included.
+        let shown: [SidebarLink] = [.search, .library, .favorites, .videos]
+        precondition(dropLayout.move(.videos, to: "photos", at: 1, among: shown))
+        precondition(dropLayout.links(in: .photos) == [.search, .videos, .library, .favorites])
+        let reordered = dropLayout.links(in: .photos)
+        precondition(!dropLayout.move(.videos, to: "photos", at: 1, among: reordered), "Dropping a row on its own place changes nothing")
+        precondition(!dropLayout.move(.videos, to: "photos", at: 2, among: reordered))
+        precondition(dropLayout.move(.search, to: "photos", at: 4, among: reordered))
+        precondition(dropLayout.links(in: .photos) == [.videos, .library, .favorites, .search])
+        precondition(dropLayout.move(.map, to: "photos", at: 0, among: dropLayout.links(in: .photos)))
+        precondition(dropLayout.links(in: .photos).first == .map && !dropLayout.links(in: .explore).contains(.map))
+        // Hidden rows are not shown, so a drop after the last shown row lands before them.
+        dropLayout.setHidden(true, link: .search)
+        precondition(dropLayout.move(.places, to: "photos", at: 4, among: [.map, .videos, .library, .favorites]))
+        precondition(dropLayout.links(in: .photos) == [.map, .videos, .library, .favorites, .places, .search])
+        let customDrop = dropLayout.addSection(named: "Empty")!
+        precondition(dropLayout.move(.places, to: customDrop, at: 0, among: []))
+        precondition(dropLayout.links(in: customDrop) == [.places])
         // Existing saved orders migrate into the richer layout without resetting user choices.
         let migrated = SidebarLayout(stored: #"[{"link":"videos","group":"photos"},{"link":"library","group":"utilities"}]"#)
         precondition(migrated.links(in: .photos).first == .videos)

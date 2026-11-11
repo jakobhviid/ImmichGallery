@@ -50,7 +50,7 @@ struct SharedLinksView: View {
                             }
                             Text(link.expiresAt.flatMap(ImmichDate.parse).map { $0 <= Date() ? "Expired" : "Expires \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "Never expires").font(.caption).foregroundStyle(.secondary)
                             if link.type == "INDIVIDUAL" {
-                                NavigationLink("Manage \(link.assets.count) Photos") { SharedLinkAssetsView(linkID: link.id) }
+                                NavigationLink("Manage \(link.assets.count) Photos", value: SharedLinkRoute(id: link.id))
                             }
                         }.padding(.vertical, 6)
                     }
@@ -58,21 +58,24 @@ struct SharedLinksView: View {
             }
         }
         .navigationTitle("Shared Links")
-        .toolbar {
-            ToolbarItem { viewOptions.disabled(!sharing.linksAvailable) }
-            ToolbarItem {
+        .navigationDestination(for: SharedLinkRoute.self) { SharedLinkAssetsView(linkID: $0.id) }
+        .pageToolbar("sharedLinks") {
+            ToolbarItem(id: "viewOptions") { viewOptions.disabled(!sharing.linksAvailable) }
+            ToolbarItem(id: "shareAlbum") {
                 Menu("Share Album", systemImage: "plus") {
                     ForEach(session.albums) { album in
                         Button(album.albumName) { albumID = album.id; showCreate = true }
                     }
-                }.disabled(!sharing.linksAvailable || session.albums.isEmpty)
+                }
+                .menuIndicator(.hidden)
+                .disabled(!sharing.linksAvailable || session.albums.isEmpty)
             }
-            ToolbarItem { Button("Refresh", systemImage: "arrow.clockwise") { Task { await sharing.reload() } } }
+            ToolbarItem(id: "refresh") { Button("Refresh", systemImage: "arrow.clockwise") { Task { await sharing.reload() } } }
         }
         .sheet(item: $sharingLink) { SharedLinkURLSheet(link: $0) }
         .sheet(item: $editing) { SharedLinkEditor(link: $0) }
         .sheet(isPresented: $showCreate) { SharedLinkEditor(albumID: albumID) }
-        .confirmationDialog("Delete public link?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+        .confirmationDialog("Delete public link?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button("Delete Link", role: .destructive) {
                 if let link = deleting { Task { await sharing.perform { try await session.client.deleteSharedLink(link.id) } } }
             }
@@ -83,15 +86,16 @@ struct SharedLinksView: View {
 
     private var viewOptions: some View {
         Menu {
-            Picker("Show", selection: $filter) {
+            Picker("Show", selection: $filter.animation(.smooth(duration: 0.35))) {
                 ForEach(SharedLinksFilter.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.inline)
             Divider()
-            Toggle("Hide Expired Links", isOn: $hideExpired)
+            Toggle("Hide Expired Links", isOn: $hideExpired.animation(.smooth(duration: 0.35)))
         } label: {
-            Label("View Options", systemImage: arrangement.isFiltered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            Label("View Options", systemImage: arrangement.isFiltered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
         }
+        .menuIndicator(.hidden)
         .help("View Options")
     }
 
@@ -99,6 +103,10 @@ struct SharedLinksView: View {
         do { SharingClipboard.copy(try await session.client.sharingPublicURL(link)) }
         catch { session.sharing.error = error.localizedDescription }
     }
+}
+
+struct SharedLinkRoute: Hashable {
+    let id: String
 }
 
 struct SharedLinkAssetsView: View {
@@ -120,13 +128,15 @@ struct SharedLinkAssetsView: View {
             }
         }
         .navigationTitle(link?.title ?? "Shared Photos")
-        .toolbar {
-            Button("Remove Selected Photos", systemImage: "minus.circle") {
-                Task {
-                    await session.sharing.perform { try await session.client.changeSharedLinkAssets(linkID, assetIDs: Array(selected), adding: false) }
-                    await load()
-                }
-            }.disabled(selected.isEmpty || session.sharing.busy)
+        .pageToolbar("sharedLink") {
+            ToolbarItem(id: "removePhotos") {
+                Button("Remove Selected Photos", systemImage: "minus.circle") {
+                    Task {
+                        await session.sharing.perform { try await session.client.changeSharedLinkAssets(linkID, assetIDs: Array(selected), adding: false) }
+                        await load()
+                    }
+                }.disabled(selected.isEmpty || session.sharing.busy)
+            }
         }
         .sharingError()
         .task { await load() }

@@ -51,19 +51,20 @@ struct AssetsDuplicatesView: View {
         }
         .navigationTitle("Duplicates")
         .disabled(busy)
-        .toolbar {
-            ToolbarItem {
+        .pageToolbar("duplicates") {
+            ToolbarItem(id: "viewOptions") {
                 Menu {
-                    Picker("Sort By", selection: $sortBy) {
+                    Picker("Sort By", selection: $sortBy.animation(.smooth(duration: 0.35))) {
                         ForEach(DuplicatesSortBy.allCases) { Text($0.title).tag($0) }
                     }
                     .pickerStyle(.inline)
                 } label: {
-                    Label("View Options", systemImage: "line.3.horizontal.decrease.circle")
+                    Label("View Options", systemImage: "line.3.horizontal.decrease")
                 }
+                .menuIndicator(.hidden)
                 .help("View Options")
             }
-            ToolbarItem { Button("Reload", systemImage: "arrow.clockwise") { Task { await load() } } }
+            ToolbarItem(id: "reload") { Button("Reload", systemImage: "arrow.clockwise") { Task { await load() } } }
         }
         .task { await load() }
         .confirmationDialog(dismissGroup ? "Dismiss this duplicate group?" : (session.features.trash ? "Move unselected items to Recently Deleted?" : "Permanently delete unselected items?"),
@@ -79,7 +80,8 @@ struct AssetsDuplicatesView: View {
                             else { try await session.client.assetsResolveDuplicate(group, keep: keep[group.id, default: []]) }
                             session.invalidateGrids()
                             await session.reloadAlbums()
-                            groups.removeAll { $0.id == group.id }
+                            // The resolved group closes up, as a deleted photo does.
+                            withAnimation(.smooth(duration: 0.35)) { groups.removeAll { $0.id == group.id } }
                             keep[group.id] = nil
                         } catch { session.handle(error); self.error = error.localizedDescription }
                     }

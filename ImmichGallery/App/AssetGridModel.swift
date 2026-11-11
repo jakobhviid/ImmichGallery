@@ -561,20 +561,145 @@ final class AssetGridModel {
         if flags.contains(.command) {
             if selection.contains(id) { selection.remove(id) } else { selection.insert(id) }
             anchorID = id
-        } else if flags.contains(.shift), let anchor = anchorID, let a = index[anchor], let b = index[id] {
-            let (from, to) = (a.section, a.item) < (b.section, b.item) ? (a, b) : (b, a)
-            var ids: Set<String> = []
-            for s in from.section...to.section {
-                guard let assets = sections[s].assets else { continue }
-                let start = s == from.section ? from.item : 0
-                let end = s == to.section ? to.item : assets.count - 1
-                if start <= end { ids.formUnion(assets[start...end].map(\.id)) }
-            }
-            selection = ids
+        } else if flags.contains(.shift), let anchor = anchorID ?? cursorID ?? orderedSelection.first, index[anchor] != nil {
+            selection = range(from: anchor, to: id)
+            anchorID = anchor
         } else {
             selection = [id]
             anchorID = id
         }
+        cursorID = id
+    }
+
+    /// Every item from one to the other, in the grid's order, both included.
+    private func range(from first: String, to last: String) -> Set<String> {
+        guard let a = index[first], let b = index[last] else { return [last] }
+        let (from, to) = (a.section, a.item) < (b.section, b.item) ? (a, b) : (b, a)
+        var ids: Set<String> = []
+        for s in from.section...to.section {
+            guard let assets = sections[s].assets else { continue }
+            let start = s == from.section ? from.item : 0
+            let end = s == to.section ? to.item : assets.count - 1
+            if start <= end { ids.formUnion(assets[start...end].map(\.id)) }
+        }
+        return ids
+    }
+
+    private var orderedSelection: [String] {
+        selection.compactMap { id in index[id].map { (id, $0) } }
+            .sorted { ($0.1.section, $0.1.item) < ($1.1.section, $1.1.item) }.map(\.0)
+    }
+
+    // MARK: Keyboard
+
+    /// The item the arrow keys move from: the last one clicked or reached, as in Photos and Finder.
+    @ObservationIgnored private var cursorID: String?
+    /// How many items a row of the grid holds, set by the grid from its width.
+    @ObservationIgnored var columns = 1
+    /// The item the arrow keys reached, for the grid to scroll to.
+    var keyboardScrollTarget: String?
+    /// Whether a page header above the photos (an album's, a person's) is in view: while it is, it names the page
+    /// and the toolbar doesn't repeat it.
+    var headerInView = true
+    /// Counts removals, so the grid animates the photos into their new places.
+    private(set) var removals = 0
+    /// The months of the photos in view, for the window's subtitle as in Photos.
+    private(set) var visibleMonths: String?
+
+    func showing(sections ids: some Sequence<String>) {
+        let months = showsSectionHeaders ? ImmichDate.monthRange(ids) : nil
+        if months != visibleMonths { visibleMonths = months }
+    }
+
+    enum Move { case left, right, up, down }
+
+    /// Moves the cursor one item, or one row, and selects it; extending selects everything from where the
+    /// selection started (the anchor) to it, as Shift does in Photos and Finder.
+    func move(_ direction: Move, extending: Bool) async {
+        let start = cursorID.flatMap { selection.contains($0) && index[$0] != nil ? $0 : nil }
+            ?? (direction == .left || direction == .up ? orderedSelection.first : orderedSelection.last)
+        guard let start else {
+            // Nothing selected: the first item, as Photos does.
+            guard let first = sections.lazy.compactMap({ $0.assets?.first }).first else { return }
+            select(first.id)
+            return
+        }
+        guard let target = await self.target(from: start, direction) else { return }
+        cursorID = target
+        if extending {
+            let anchor = anchorID.flatMap { index[$0] != nil ? $0 : nil } ?? start
+            anchorID = anchor
+            selection = range(from: anchor, to: target)
+        } else {
+            selection = [target]
+            anchorID = target
+        }
+        keyboardScrollTarget = target
+    }
+
+    private func select(_ id: String) {
+        selection = [id]
+        anchorID = id
+        cursorID = id
+        keyboardScrollTarget = id
+    }
+
+    /// The item one step away: across months for left and right, by row for up and down. Each month starts a new
+    /// row, so moving down from its last row goes to the same column of the next month's first row.
+    private func target(from id: String, _ direction: Move) async -> String? {
+        switch direction {
+        case .left: return await neighbor(of: id, delta: -1)?.id
+        case .right: return await neighbor(of: id, delta: 1)?.id
+        case .up, .down:
+            guard let pos = index[id] else { return nil }
+            let width = max(1, columns), column = pos.item % width
+            let count = sections[pos.section].assets?.count ?? 0
+            if direction == .down {
+                if pos.item + width < count { return sections[pos.section].assets?[pos.item + width].id }
+                // A shorter last row: its last item, as Finder does.
+                if pos.item / width < (count - 1) / width { return sections[pos.section].assets?.last?.id }
+                var s = pos.section + 1
+                while sections.indices.contains(s) {
+                    if sections[s].assets == nil { await loadSection(id: sections[s].id).value }
+                    if let assets = sections[s].assets, !assets.isEmpty { return assets[min(column, assets.count - 1)].id }
+                    s += 1
+                }
+            } else {
+                if pos.item - width >= 0 { return sections[pos.section].assets?[pos.item - width].id }
+                var s = pos.section - 1
+                while sections.indices.contains(s) {
+                    if sections[s].assets == nil { await loadSection(id: sections[s].id).value }
+                    if let assets = sections[s].assets, !assets.isEmpty {
+                        let lastRow = (assets.count - 1) / width * width
+                        return assets[min(lastRow + column, assets.count - 1)].id
+                    }
+                    s -= 1
+                }
+            }
+            return nil
+        }
+    }
+
+    /// The items next to one, already loaded, for Quick Look to fetch ahead.
+    func loadedNeighbours(of id: String) -> [String] {
+        guard let pos = index[id], let assets = sections[pos.section].assets else { return [] }
+        var ids: [String] = []
+        if pos.item > 0 { ids.append(assets[pos.item - 1].id) }
+        if pos.item + 1 < assets.count { ids.append(assets[pos.item + 1].id) }
+        let width = max(1, columns)
+        if pos.item + width < assets.count { ids.append(assets[pos.item + width].id) }
+        if pos.item - width >= 0 { ids.append(assets[pos.item - width].id) }
+        return ids
+    }
+
+    /// The selection's neighbours when one item is selected, else none.
+    var quickLookAhead: [String] {
+        selection.count == 1 ? selection.first.map(loadedNeighbours(of:)) ?? [] : []
+    }
+
+    /// Where an item sits, for scrolling to it.
+    func position(of id: String) -> (section: String, item: Int)? {
+        index[id].map { (sections[$0.section].id, $0.item) }
     }
 
     func selectAll() {
@@ -703,6 +828,7 @@ final class AssetGridModel {
         sections.removeAll { $0.count == 0 && $0.assets != nil }
         selection.subtract(removed)
         rebuildIndex()
+        removals += 1
     }
 }
 

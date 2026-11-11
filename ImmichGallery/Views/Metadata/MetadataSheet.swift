@@ -61,7 +61,7 @@ struct MetadataDateEditor: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Adjust Date and Time").font(.title2)
             Text("\(ids.count) selected items").foregroundStyle(.secondary)
-            Toggle("Shift each item's date by an offset", isOn: $relative)
+            Toggle("Shift each item's date by an offset", isOn: $relative.animation(.smooth(duration: 0.25)))
             if relative {
                 TextField("Offset in minutes", value: $minutes, format: .number)
                 Text("Positive values move dates later; negative values move them earlier.").font(.caption)

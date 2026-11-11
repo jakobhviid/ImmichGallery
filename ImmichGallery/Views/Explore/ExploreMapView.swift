@@ -10,7 +10,7 @@ struct ExploreMapView: View {
     @State private var didFitMarkers = false
     @State private var filters = ExploreMapFilters()
     @State private var error: String?
-    @State private var selection: ExploreMapCluster?
+    @Environment(PageNavigation.self) private var navigation
     @State private var clusterTask: Task<Void, Never>?
     private var filterKey: String { "\(filters.favorites)-\(filters.archived)-\(filters.partners)-\(String(describing: filters.afterDay))-\(String(describing: filters.beforeDay))" }
     var body: some View {
@@ -20,13 +20,16 @@ struct ExploreMapView: View {
         return Map(position: $position) {
             ForEach(clusters) { cluster in
                 Annotation(String(localized: "\(cluster.assets.count) photos"), coordinate: .init(latitude: cluster.lat, longitude: cluster.lon)) {
-                    ExploreMapAnnotation(cluster: cluster, pipeline: pipeline) { selection = cluster }
+                    ExploreMapAnnotation(cluster: cluster, pipeline: pipeline) { open(cluster) }
                         .environment(session)
                 }
             }
         }
         .onMapCameraChange(frequency: .onEnd) { context in region = context.region; recluster() }
-        .toolbar { ToolbarItem { ExploreMapFiltersButton(filters: filters) } }
+        .pageToolbar("map") {
+            ToolbarItem(id: "dateRange", placement: .principal) { ExploreMapRangePicker(filters: filters) }
+            ToolbarItem(id: "mapFilters") { ExploreMapFiltersButton(filters: filters) }
+        }
         .task(id: filterKey) {
             do {
                 let loaded = try await session.client.exploreMarkers(favorites: filters.favorites, archived: filters.archived, partners: filters.partners,
@@ -46,12 +49,13 @@ struct ExploreMapView: View {
             } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
         }
         .overlay { if let error { ContentUnavailableView("Map Unavailable", systemImage: "map", description: Text(error)) } }
-        .navigationDestination(item: $selection) { cluster in
-            AssetGridContainer(source: .explore(.map(ExploreMapQuery(bbox: cluster.bbox, favorites: filters.favorites, archived: filters.archived, partners: filters.partners,
-                after: filters.afterDay, before: filters.beforeDay))), title: Text("Map Photos"))
-        }
         .onDisappear { clusterTask?.cancel() }
     }
+    private func open(_ cluster: ExploreMapCluster) {
+        navigation.open(GridRoute(source: .explore(.map(ExploreMapQuery(bbox: cluster.bbox, favorites: filters.favorites, archived: filters.archived,
+            partners: filters.partners, after: filters.afterDay, before: filters.beforeDay))), title: String(localized: "Map Photos")))
+    }
+
     private func recluster() {
         clusterTask?.cancel()
         let markers = markers
@@ -115,6 +119,16 @@ final class ExploreMapFilters {
 
 /// Takes only a stable reference: on macOS 15 a toolbar item whose inputs change is rebuilt,
 /// which dismisses its popover after every filter change.
+/// The date ranges in the middle of the toolbar, as Photos' Years, Months and All Photos; a custom range is in the
+/// filters.
+private struct ExploreMapRangePicker: View {
+    let filters: ExploreMapFilters
+    var body: some View {
+        ToolbarModePicker(selection: Binding(get: { filters.dateRange }, set: { filters.select($0) }),
+                          options: [.all, .past3Years, .pastYear, .past30Days, .past7Days, .past24Hours]) { $0.title }
+    }
+}
+
 private struct ExploreMapFiltersButton: View {
     let filters: ExploreMapFilters
     @State private var showing = false
@@ -131,13 +145,13 @@ private struct ExploreMapFiltersForm: View {
             Toggle("Favorites Only", isOn: $filters.favorites)
             Toggle("Include Archived", isOn: $filters.archived)
             Toggle("Include Partners", isOn: $filters.partners)
-            Picker("Date Range", selection: Binding(get: { filters.dateRange }, set: { filters.select($0) })) {
-                ForEach(ExploreMapDateRange.allCases) { Text($0.title).tag($0) }
-            }
+            Toggle("Custom Range", isOn: Binding(get: { filters.dateRange == .custom }, set: { filters.select($0 ? .custom : .all) }))
             if filters.dateRange == .custom {
                 DatePicker("From", selection: $filters.after, in: ...filters.before, displayedComponents: .date)
                 DatePicker("Through", selection: $filters.before, in: filters.after..., displayedComponents: .date)
             }
-        }.padding().frame(width: 300)
+        }
+        .padding().frame(width: 300)
+        .animation(.smooth(duration: 0.25), value: filters.dateRange)
     }
 }

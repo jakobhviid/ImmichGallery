@@ -81,6 +81,7 @@ The demo is shared with everyone and doesn't accept uploads.
 | Feature                                                          | Immich Gallery |
 | :--------------------------------------------------------------- | :------------: |
 | Timeline grouped by month, with ThumbHash placeholders           | ✅ |
+| Library as Years, Months or All Photos, like Photos; square or aspect-ratio grid | ✅ |
 | View options: favorites only, photos or videos only, newest or oldest first, date taken or date added | ✅ |
 | Favorites, Videos, Archive, Recently Deleted                     | ✅ |
 | Viewer with zoom, video, Live Photos, slideshow and full screen  | ✅ |
@@ -104,7 +105,8 @@ The demo is shared with everyone and doesn't accept uploads.
 | API keys, sessions, notifications, preferences                   | ✅ |
 | Administration: stats, jobs, users, external libraries           | ✅ |
 | Several windows and tabs, Quick Look, drag and drop              | ✅ |
-| Customizable sidebar, edited in place, with collapsible sections and a choice of how many albums it lists | ✅ |
+| Customizable sidebar, edited in place, with collapsible sections and a choice of how many albums it lists; it follows the system's sidebar icon size | ✅ |
+| Customizable toolbar, grouped like Photos                        | ✅ |
 | Shortcuts actions and the macOS share sheet                      | ✅ |
 | Show in other Immich apps ([Immich Crosslink](https://jakob.hviid.phd/immich-crosslink/)), Open in Immich, Copy Immich Link | ✅ |
 | Desktop widgets: photos (featured, album, person, place, favorites, chosen), mosaic, library | ✅ |
@@ -133,7 +135,8 @@ The demo is shared with everyone and doesn't accept uploads.
 | New album                      | ⌥⌘N |
 | Rotate left / right            | ⌥⌘R / ⇧⌥⌘R |
 | Copy image                     | ⌘C |
-| Quick Look                     | Space |
+| Move through photos / extend the selection | Arrow keys / ⇧ arrow keys |
+| Quick Look (arrow keys step through) | Space |
 | New window / new tab           | ⌘N / ⌘T |
 | Administration (admins)        | ⌥⌘A |
 

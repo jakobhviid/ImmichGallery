@@ -16,36 +16,16 @@ struct PersonDetailView: View {
     @State private var error: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            if session.gridModel(for: .person(person.id)).viewerID == nil {
-                HStack(spacing: 20) {
-                    PersonCell(person: person).frame(width: 80)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(person.displayName).font(.largeTitle.bold())
-                        if let birthday = person.birthday {
-                            let age = Calendar.current.dateComponents([.year], from: birthday, to: .now).year ?? 0
-                            Text("\(birthday.formatted(date: .abbreviated, time: .omitted)) · Age \(age)")
-                                .foregroundStyle(.secondary)
-                        }
-                        if let count { Text("\(count) photos and videos").foregroundStyle(.secondary) }
-                    }
-                    Spacer()
-                    Menu {
-                        Button("Edit Name and Birthday…") { editing = true }
-                        Button(person.isFavorite == true ? "Unfavorite Person" : "Favorite Person") {
-                            update(PersonEdit(isFavorite: person.isFavorite != true))
-                        }
-                        Button(person.isHidden ? "Unhide Person" : "Hide Person") {
-                            update(PersonEdit(isHidden: !person.isHidden))
-                        }
-                        Button("Merge with Another Person…") { merging = true }
-                    } label: { Label("Person Actions", systemImage: "ellipsis.circle") }
-                    .menuStyle(.borderlessButton).fixedSize().disabled(busy)
-                }
-                .padding(20)
-                Divider()
+        // As in Immich, the person's header is where they are recognised and named: the face, the name and birthday
+        // edited in place, and how many photos. It scrolls away with the photos, and the toolbar shows the name
+        // once it has.
+        AssetGridContainer(source: .person(person.id), title: Text(verbatim: person.displayName), headerScrolls: true) {
+            header
+        }
+        .toolbar(id: "person") {
+            if grid.viewerID == nil {
+                ToolbarItem(id: "personMenu") { personMenu }
             }
-            AssetGridContainer(source: .person(person.id), title: Text(verbatim: person.displayName))
         }
         .task { await reload() }
         .onReceive(NotificationCenter.default.publisher(for: .peopleChanged, object: session.services)) { _ in
@@ -57,7 +37,7 @@ struct PersonDetailView: View {
         .sheet(isPresented: $merging) {
             PeoplePicker(title: "Merge into \(person.displayName)", excludedID: person.id) { mergeCandidate = $0 }
         }
-        .confirmationDialog("Merge People?", isPresented: Binding(get: { mergeCandidate != nil }, set: { if !$0 { mergeCandidate = nil } })) {
+        .confirmationDialog("Merge People?", isPresented: Binding(get: { mergeCandidate != nil }, set: { if !$0 { mergeCandidate = nil } }), titleVisibility: .visible) {
             Button("Merge", role: .destructive) {
                 guard let candidate = mergeCandidate else { return }
                 mergeCandidate = nil
@@ -76,6 +56,80 @@ struct PersonDetailView: View {
         .alert("People", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") { error = nil }
         } message: { Text(error ?? "") }
+    }
+
+    private var grid: AssetGridModel { session.gridModel(for: .person(person.id)) }
+
+    private var header: some View {
+        HStack(spacing: 20) {
+            PersonCell(person: person, showsName: false).frame(width: 96)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    InlineEditableText(text: person.name, placeholder: "Add a Name", font: .largeTitle.bold(), enabled: !busy) { name in
+                        update(PersonEdit(name: name))
+                    }
+                    if person.isFavorite == true {
+                        Image(systemName: "heart.fill").foregroundStyle(.red).accessibilityLabel("Favorite")
+                    }
+                }
+                HStack(spacing: 6) {
+                    if let count { Text("\(count) photos and videos") }
+                    if let birthday = person.birthday {
+                        let age = Calendar.current.dateComponents([.year], from: birthday, to: .now).year ?? 0
+                        if count != nil { Text(verbatim: "·") }
+                        Text("\(birthday.formatted(date: .abbreviated, time: .omitted)) · Age \(age)")
+                            .onTapGesture { editing = true }
+                            .help("Edit Name and Birthday…")
+                    } else {
+                        if count != nil { Text(verbatim: "·") }
+                        Button("Add Birthday") { editing = true }.buttonStyle(.link)
+                    }
+                }
+                .font(.callout).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 12)
+    }
+
+    /// The person's actions, in a toolbar menu of their own beside the photos' controls: what Immich puts in its
+    /// person page's menu.
+    private var personMenu: some View {
+        Menu {
+            Button("Edit Name and Birthday…") { editing = true }
+            Button("Use as Face Photo") { useAsFacePhoto() }
+                .disabled(grid.selection.count != 1)
+            Divider()
+            Button(person.isFavorite == true ? "Unfavorite Person" : "Favorite Person") {
+                update(PersonEdit(isFavorite: person.isFavorite != true))
+            }
+            Button(person.isHidden ? "Unhide Person" : "Hide Person") {
+                update(PersonEdit(isHidden: !person.isHidden))
+            }
+            Divider()
+            Button("Merge with Another Person…") { merging = true }
+        } label: { Label("Person", systemImage: "person.crop.circle") }
+        .menuIndicator(.hidden)
+        .help("Person")
+        .disabled(busy)
+    }
+
+    /// The selected photo becomes the person's face, as the viewer's face tools do it.
+    private func useAsFacePhoto() {
+        guard grid.selection.count == 1, let assetID = grid.selection.first else { return }
+        let personID = person.id
+        busy = true
+        Task {
+            defer { busy = false }
+            do {
+                let previous = try? await session.client.data(for: session.client.personThumbnailRequest(personID))
+                person = try await session.client.editPerson(personID, PersonEdit(featureFaceAssetId: assetID))
+                session.pipeline.invalidatePerson(personID)
+                NotificationCenter.default.post(name: .personThumbnailChanged, object: session.services, userInfo: ["personID": personID])
+                await session.pipeline.refreshPersonThumbnail(personID, replacing: previous)
+                NotificationCenter.default.post(name: .personThumbnailChanged, object: session.services, userInfo: ["personID": personID])
+            } catch { report(error) }
+        }
     }
 
     private func update(_ edit: PersonEdit) {
@@ -114,7 +168,7 @@ struct PersonEditSheet: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Edit Person").font(.headline)
             TextField("Name", text: $name)
-            Toggle("Birthday", isOn: $hasBirthday)
+            Toggle("Birthday", isOn: $hasBirthday.animation(.smooth(duration: 0.25)))
             if hasBirthday { DatePicker("Date of Birth", selection: $birthday, in: ...Date.now, displayedComponents: .date) }
             if let error { Text(error).foregroundStyle(.red) }
             HStack {
@@ -164,7 +218,7 @@ struct InspectorPeopleList: View {
         .sheet(item: $selected) { person in
             NavigationStack {
                 PersonDetailView(person: person)
-                    .toolbar { Button("Done") { selected = nil } }
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { selected = nil } } }
             }.frame(minWidth: 850, minHeight: 650)
         }
     }

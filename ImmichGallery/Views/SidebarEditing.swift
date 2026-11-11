@@ -1,17 +1,15 @@
 import SwiftUI
 
-/// A section heading. Like Finder and Photos, a disclosure chevron appears on hover to collapse the
-/// section; while editing, a checkbox shows or hides it and custom sections can be renamed in place.
+/// A section heading, which the sidebar list styles and gives its collapse chevron. While editing, a checkbox
+/// shows or hides it and custom sections can be renamed in place.
 struct SidebarSectionHeader<MenuItems: View>: View {
     let section: SidebarSection
     let editing: Bool
     @Binding var renaming: String?
     let setHidden: (Bool) -> Void
-    let setCollapsed: (Bool) -> Void
     let rename: (String) -> Void
     @Binding var name: String
     @ViewBuilder let menu: MenuItems
-    @State private var hovering = false
     @FocusState private var nameFocused: Bool
 
     var body: some View {
@@ -31,29 +29,10 @@ struct SidebarSectionHeader<MenuItems: View>: View {
                     .onChange(of: nameFocused) { _, focused in if !focused { commitRename() } }
             } else {
                 section.label
-                    .font(.caption.bold()).foregroundStyle(.secondary)
                     .opacity(editing && section.hidden ? 0.55 : 1)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityAction(named: section.isCollapsed ? Text("Expand") : Text("Collapse")) { setCollapsed(!section.isCollapsed) }
                     .onTapGesture(count: 2) { if editing && section.isCustom { renaming = section.id } }
             }
-            Spacer(minLength: 0)
-            Button { setCollapsed(!section.isCollapsed) } label: {
-                Image(systemName: "chevron.right")
-                    .rotationEffect(.degrees(section.isCollapsed ? 0 : 90))
-                    .font(.caption.bold()).foregroundStyle(.secondary)
-                    .frame(width: 16, height: 16)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .opacity(hovering ? 1 : 0)
-            .help(section.isCollapsed ? "Expand" : "Collapse")
-            .accessibilityHidden(true)
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
         .contextMenu { menu }
     }
 
@@ -71,12 +50,10 @@ struct SidebarEditRow<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        SidebarRowContent(selected: false, active: false) {
-            Toggle(isOn: $isOn) {
-                content.opacity(isOn ? 1 : 0.55)
-            }
-            .toggleStyle(.checkbox)
+        Toggle(isOn: $isOn) {
+            content.opacity(isOn ? 1 : 0.55)
         }
+        .toggleStyle(.checkbox)
     }
 }
 
@@ -87,8 +64,9 @@ struct SidebarHiddenItem: Identifiable {
     let show: () -> Void
 }
 
-/// Next to the account: a menu with the sidebar's options, which becomes Done while editing.
+/// Next to the account: a menu with the sidebar's options and Settings, which becomes Done while editing.
 struct SidebarFooterControls: View {
+    @Environment(\.openSettings) private var openSettings
     @Binding var editing: Bool
     let hidden: [SidebarHiddenItem]
     let newSection: () -> Void
@@ -113,12 +91,15 @@ struct SidebarFooterControls: View {
                 }
                 Divider()
                 Button("Reset Sidebar…", action: reset)
+                Divider()
+                // The app's Settings, also in the app menu (⌘,), found where the account's own settings are.
+                Button("Settings…") { openSettings() }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("Sidebar Options")
-            .accessibilityLabel("Sidebar Options")
+            .help("Options")
+            .accessibilityLabel("Options")
         }
     }
 }

@@ -11,16 +11,18 @@ struct ExploreTagsView: View {
     var body: some View {
         List(ExploreTagNode.tree(session.exploreTags), children: \.children) { node in
             let tag = node.tag
-            NavigationLink {
-                AssetGridContainer(source: .explore(.tag(tag.id)), title: Text(tag.value))
-            } label: { Label(tag.name, systemImage: "tag").foregroundStyle(tagColor(tag.color)) }
+            NavigationLink(value: GridRoute(source: .explore(.tag(tag.id)), title: tag.value)) {
+                Label(tag.name, systemImage: "tag").foregroundStyle(tagColor(tag.color))
+            }
             .contextMenu {
                 Button("Edit Tag…") { editing = tag; name = tag.name; color = tag.color ?? ""; showingEditor = true }
                 Button("Delete Tag…", role: .destructive) { deleting = tag }
             }
         }
-        .toolbar {
-            Button { editing = nil; name = ""; color = ""; showingEditor = true } label: { Label("New Tag", systemImage: "plus") }
+        .pageToolbar("tags") {
+            ToolbarItem(id: "newTag") {
+                Button { editing = nil; name = ""; color = ""; showingEditor = true } label: { Label("New Tag", systemImage: "plus") }
+            }
         }
         .task { await reload() }
         .sheet(isPresented: $showingEditor) {
@@ -42,7 +44,7 @@ struct ExploreTagsView: View {
                 }
             }.padding().frame(width: 380)
         }
-        .confirmationDialog("Delete tag \(deleting?.value ?? "") and its child tags?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+        .confirmationDialog("Delete tag \(deleting?.value ?? "") and its child tags?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button("Delete Tag", role: .destructive) {
                 guard let tag = deleting else { return }
                 Task { do { try await session.client.exploreDeleteTag(tag.id); await reload() } catch { self.error = error.localizedDescription } }

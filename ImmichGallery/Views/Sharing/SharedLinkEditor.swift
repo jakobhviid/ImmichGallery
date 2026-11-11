@@ -30,17 +30,17 @@ struct SharedLinkEditor: View {
                     TextField("Description", text: $options.description)
                     TextField("Custom URL slug", text: $options.slug)
                     if link?.hasPassword == true {
-                        Toggle("Keep existing password", isOn: $preservePassword)
+                        Toggle("Keep existing password", isOn: $preservePassword.animation(.smooth(duration: 0.25)))
                     }
                     if link?.hasPassword != true || !preservePassword {
                         SecureField("Password (empty for none)", text: $options.password)
                     }
-                    Toggle("Expires", isOn: $expires)
+                    Toggle("Expires", isOn: $expires.animation(.smooth(duration: 0.25)))
                     if expires { DatePicker("Expiration", selection: $expiry, in: min(Date(), expiry)...) }
                     Toggle("Show metadata", isOn: $options.showMetadata)
                         .onChange(of: options.showMetadata) { _, value in if !value { options.allowDownload = false } }
                     Toggle("Allow download", isOn: $options.allowDownload).disabled(!options.showMetadata)
-                    Toggle("Allow upload", isOn: $options.allowUpload)
+                    Toggle("Allow upload", isOn: $options.allowUpload.animation(.smooth(duration: 0.25)))
                     if options.allowUpload { Text("Visitors can upload photos to your account.").font(.caption).foregroundStyle(.secondary) }
                 }.formStyle(.grouped)
                 if let error { Text(error).foregroundStyle(.red).textSelection(.enabled) }

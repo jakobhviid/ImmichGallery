@@ -96,31 +96,29 @@ struct AlbumNameSheet: View {
 
 struct AlbumSidebarRows: View {
     @Environment(LibrarySession.self) private var session
+    @Environment(\.sidebarRowSize) private var rowSize
 
     let shared: Bool
     @Binding var storedLayout: String
-    @Binding var selection: SidebarItem?
 
     var body: some View {
         let layout = SidebarLayout(stored: storedLayout)
         ForEach(session.sidebarAlbums(in: (shared ? SidebarGroup.sharedAlbums : .myAlbums).rawValue, layout: layout)) { album in
-            SidebarSelectionRow(item: .album(album.id), selection: $selection) {
-                Label {
-                    Text(album.albumName)
-                } icon: {
-                    if let assetID = album.albumThumbnailAssetId {
-                        RemoteThumbnail(pipeline: session.pipeline, assetID: assetID,
-                                        placeholderSystemImage: shared ? "person.2.crop.square.stack" : "rectangle.stack")
-                            .frame(width: 24, height: 24)
-                            .clipShape(.rect(cornerRadius: 4))
-                            .accessibilityHidden(true)
-                    } else {
-                        Image(systemName: shared ? "person.2.crop.square.stack" : "rectangle.stack")
-                    }
+            Label {
+                Text(album.albumName)
+            } icon: {
+                if let assetID = album.albumThumbnailAssetId {
+                    RemoteThumbnail(pipeline: session.pipeline, assetID: assetID,
+                                    placeholderSystemImage: shared ? "person.2.crop.square.stack" : "rectangle.stack")
+                        .frame(width: thumbnailSize, height: thumbnailSize)
+                        .clipShape(.rect(cornerRadius: 4))
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: shared ? "person.2.crop.square.stack" : "rectangle.stack")
                 }
             }
+                .tag(SidebarItem.album(album.id))
                 .modifier(AlbumRowUploadDrop(queue: session.upload, albumID: album.id, addAssets: { add($0, to: album) })) // Upload
-                .id(SidebarItem.album(album.id))
                 .contextMenu {
                     MacAlbumWindowMenu(albumID: album.id)
                     CrosslinkMenuItems(item: .album(album.id)) // Crosslink
@@ -128,10 +126,19 @@ struct AlbumSidebarRows: View {
                     Button("Hide from Sidebar") {
                         var layout = SidebarLayout(stored: storedLayout)
                         layout.setDynamicItemHidden(true, key: session.sidebarItemKey("album:" + album.id))
-                        storedLayout = layout.stored
+                        withAnimation(.easeInOut(duration: 0.2)) { storedLayout = layout.stored }
                     }
                 }
                 .modifier(AlbumRowAssetDrop { add($0, to: album) })
+        }
+    }
+
+    /// The cover fills the space of a sidebar icon at the system's sidebar icon size.
+    private var thumbnailSize: CGFloat {
+        switch rowSize {
+        case .small: 16
+        case .large: 24
+        default: 20
         }
     }
 

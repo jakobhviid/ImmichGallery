@@ -60,7 +60,7 @@ struct GridViewOptions: View {
         } label: {
             let filtered = (page.offersFavoritesFilter && show != .all) || (page.offersMediaTypeFilter && mediaType != .all)
                 || (page.offersLocationFilter && location != .all)
-            Label("View Options", systemImage: filtered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            Label("View Options", systemImage: filtered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
         }
         .help(page.offersSortBy && !dateAddedAvailable ? "View Options. Sorting by Date Added needs Immich v3.0 or later." : "View Options")
     }

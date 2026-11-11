@@ -19,52 +19,68 @@ struct AssetsContextMenu: View {
     }
 }
 
-struct AssetsGridUtilities: ViewModifier {
+/// What the grid's More menu and its confirmations share: the menu sits in the grid's toolbar, so it groups with the
+/// view options as in Photos.
+@MainActor @Observable final class AssetsUtilities {
+    var trashAction: String?
+    var busy = false
+    var trashDays: Int?
+}
+
+struct AssetsUtilitiesMenu: View {
     @Environment(LibrarySession.self) private var session
     let model: AssetGridModel
-    @State private var trashAction: String?
-    @State private var busy = false
-    @State private var trashDays: Int?
-    private var supportsLocation: Bool {
-        switch model.source {
+    let utilities: AssetsUtilities
+
+    private static func supportsLocation(_ source: GridSource) -> Bool {
+        switch source {
         case .library, .favorites, .videos, .archive, .largeFiles, .geolocation, .person, .locked: true
         case .album, .search, .filteredSearch, .partner, .explore, .trash: false
         }
     }
-    func body(content: Content) -> some View {
-        content
-            .toolbar {
-                ToolbarItem {
-                    Menu {
-                        if model.source == .trash {
-                            if let trashDays { Text("Items are deleted after \(trashDays) days.") }
-                            Button("Restore All…") { trashAction = "restore" }
-                            Button("Empty Trash…", role: .destructive) { trashAction = "empty" }
-                        } else {
-                            if case .album(let id) = model.source {
-                                Button("Download Album as ZIP…") { AssetsDownloader.start(album: id, session: session) }
-                            }
-                            if supportsLocation {
-                                Button("Assign Location…") { session.metadata.present(.location, ids: model.selection.sorted()) }.disabled(!model.canMutate(model.selection.sorted()))
-                            }
-                        }
-                    } label: { Label("Asset Utilities", systemImage: "ellipsis.circle") }
-                    .disabled(busy)
+
+    /// Pages where the menu would be empty leave it out. An album's actions are in its own menu.
+    static func hasItems(for source: GridSource) -> Bool { source == .trash || supportsLocation(source) }
+
+    var body: some View {
+        Menu {
+            if model.source == .trash {
+                if let trashDays = utilities.trashDays { Text("Items are deleted after \(trashDays) days.") }
+                Button("Restore All…") { utilities.trashAction = "restore" }
+                Button("Empty Trash…", role: .destructive) { utilities.trashAction = "empty" }
+            } else {
+                if Self.supportsLocation(model.source) {
+                    Button("Assign Location…") { session.metadata.present(.location, ids: model.selection.sorted()) }.disabled(!model.canMutate(model.selection.sorted()))
                 }
             }
+        } label: { Label("More", systemImage: "ellipsis") }
+        .menuIndicator(.hidden)
+        .help("More")
+        .disabled(utilities.busy)
+    }
+}
+
+struct AssetsGridUtilities: ViewModifier {
+    @Environment(LibrarySession.self) private var session
+    let model: AssetGridModel
+    let utilities: AssetsUtilities
+
+    func body(content: Content) -> some View {
+        let trashAction = utilities.trashAction
+        content
             .task {
                 if model.source == .trash {
                     let config: AssetsServerConfig? = try? await session.client.get("server/config")
-                    trashDays = config?.trashDays
+                    utilities.trashDays = config?.trashDays
                 }
             }
             .confirmationDialog(trashAction == "empty" ? "Permanently delete every item in Recently Deleted?" : "Restore every item in Recently Deleted?",
-                                isPresented: Binding(get: { trashAction != nil }, set: { if !$0 { trashAction = nil } }), titleVisibility: .visible) {
+                                isPresented: Binding(get: { utilities.trashAction != nil }, set: { if !$0 { utilities.trashAction = nil } }), titleVisibility: .visible) {
                 let action = trashAction ?? "restore"
                 Button(action == "empty" ? "Empty Trash" : "Restore All", role: action == "empty" ? .destructive : nil) {
-                    busy = true
+                    utilities.busy = true
                     Task {
-                        defer { busy = false }
+                        defer { utilities.busy = false }
                         do {
                             try await session.client.send("POST", "trash/\(action)")
                             session.invalidateGrids()

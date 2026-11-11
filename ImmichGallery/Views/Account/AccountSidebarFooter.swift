@@ -119,24 +119,72 @@ struct AccountAvatar: View {
             if let picture = services.profilePicture {
                 Image(nsImage: picture).resizable().scaledToFill()
             } else {
-                Circle().fill(color).overlay {
-                    Text(initials).font(.system(size: size * 0.4, weight: .semibold)).foregroundStyle(.white)
-                }
+                UserInitials(name: services.user?.name ?? "", email: services.user?.email ?? "", avatarColor: services.user?.avatarColor, size: size)
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
         .accessibilityHidden(true)
     }
+}
+
+/// Another user's picture (an album's members): any signed-in user may load it, as Immich's web app does. Users
+/// without one, or whose picture can't be loaded, show their initials.
+struct UserAvatar: View {
+    @Environment(LibrarySession.self) private var session
+    let user: User
+    let size: CGFloat
+    @State private var picture: NSImage?
+
+    @MainActor private static let cache = NSCache<NSString, NSImage>()
+
+    var body: some View {
+        Group {
+            if let picture {
+                Image(nsImage: picture).resizable().scaledToFill()
+            } else {
+                UserInitials(name: user.name, email: user.email, avatarColor: user.avatarColor, size: size)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .task(id: user.profileImagePath) { await load() }
+    }
+
+    private func load() async {
+        guard let path = user.profileImagePath, !path.isEmpty else { picture = nil; return }
+        let key = "\(session.client.serverURL.absoluteString)|\(user.id)|\(path)" as NSString
+        if let cached = Self.cache.object(forKey: key) { picture = cached; return }
+        guard let request = try? session.client.request("users/\(user.id)/profile-image"),
+              let data = try? await session.client.data(for: request),
+              let image = NSImage(data: data), !Task.isCancelled else { return }
+        Self.cache.setObject(image, forKey: key)
+        withAnimation(.easeOut(duration: 0.2)) { picture = image }
+    }
+}
+
+/// Immich-style initials on the user's avatar colour.
+struct UserInitials: View {
+    let name: String
+    let email: String
+    let avatarColor: String?
+    let size: CGFloat
+
+    var body: some View {
+        Circle().fill(color).overlay {
+            Text(initials).font(.system(size: size * 0.4, weight: .semibold)).foregroundStyle(.white)
+        }
+        .frame(width: size, height: size)
+    }
 
     private var initials: String {
-        let words = (services.user?.name ?? "").split(separator: " ")
+        let words = name.split(separator: " ")
         let letters = [words.first, words.count > 1 ? words.last : nil].compactMap { $0?.first }
-        return letters.isEmpty ? String(services.user?.email.first ?? "?").uppercased() : String(letters).uppercased()
+        return letters.isEmpty ? String(email.first ?? "?").uppercased() : String(letters).uppercased()
     }
 
     private var color: Color {
-        switch services.user?.avatarColor {
+        switch avatarColor {
         case "pink": .pink
         case "red": .red
         case "yellow": .yellow

@@ -13,10 +13,11 @@ struct UploadCommands: Commands {
     }
 }
 
-struct UploadToolbar: ToolbarContent {
+struct UploadToolbar: CustomizableToolbarContent {
     let queue: UploadQueue
-    var body: some ToolbarContent {
-        ToolbarItem { UploadToolbarButton(queue: queue) }
+    var body: some CustomizableToolbarContent {
+        // Not there by default, as in Photos: File > Import… and dropping files import, and the button can be added.
+        ToolbarItem(id: "import", showsByDefault: false) { UploadToolbarButton(queue: queue) }
     }
 }
 
@@ -119,6 +120,7 @@ struct UploadDropModifier: ViewModifier {
         content
             .onDrop(of: [UTType.fileURL], delegate: UploadFileDrop(queue: queue, albumID: albumID, targeted: $targeted))
             .overlay { if targeted { RoundedRectangle(cornerRadius: 8).stroke(Color.accentColor, lineWidth: 3).allowsHitTesting(false) } }
+            .animation(.easeOut(duration: 0.15), value: targeted)
     }
 
     static func enqueue(_ providers: [NSItemProvider], queue: UploadQueue, albumID: String?) -> Bool {

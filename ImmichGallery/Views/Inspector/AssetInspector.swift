@@ -31,12 +31,13 @@ struct AssetInspector: View {
         .onReceive(NotificationCenter.default.publisher(for: .peopleChanged, object: session.services)) { _ in peopleRevision += 1 }
         .task(id: "\(assetID ?? "")-\(session.metadata.revision)") { // Metadata: reload after edits, keeping the current asset visible.
             failed = false
-            if asset?.id != assetID { asset = nil }
-            albums = []
-            guard let assetID else { return }
+            // The previous photo's details stay until the next one's arrive, instead of a spinner flashing at every
+            // step through the photos.
+            guard let assetID else { asset = nil; albums = []; return }
             do {
                 let loaded = try await session.client.asset(assetID)
                 try Task.checkCancellation()
+                if asset?.id != loaded.id { albums = [] }
                 asset = loaded
                 let loadedAlbums = (try? await session.client.albums(containing: assetID)) ?? []
                 try Task.checkCancellation()

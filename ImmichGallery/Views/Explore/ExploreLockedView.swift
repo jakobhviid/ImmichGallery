@@ -22,12 +22,13 @@ struct ExploreLockedView: View {
         Group {
             if !session.client.exploreSupportsLockedFolder {
                 ContentUnavailableView("Session Login Required", systemImage: "lock", description: Text("Sign in with email and password, or with single sign-on, to use Locked Folder. API keys cannot unlock a session."))
+                    .pageToolbar("lockedUnavailable")
             } else if let unlocked {
                 AssetGridContainer(source: .locked, title: Text("Locked Folder"))
                     .environment(unlocked)
-                    .toolbar {
+                    .toolbar(id: "locked") {
                         // Beside the title, labelled and tinted, apart from the photo actions.
-                        ToolbarItem(placement: .navigation) {
+                        ToolbarItem(id: "lock", placement: .navigation) {
                             Button { lock() } label: { Label("Lock", systemImage: "lock.fill") }
                                 .labelStyle(.titleAndIcon)
                                 .buttonStyle(.borderedProminent)
@@ -46,6 +47,7 @@ struct ExploreLockedView: View {
                         .disabled(status == nil || busy || pin.range(of: "^[0-9]{6}$", options: .regularExpression) == nil || (status?.pinCode == false && pin != confirmation))
                     Text("Locks when you leave the Locked Folder, lock the screen, or keep the app inactive for 15 minutes.").font(.caption).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                .pageToolbar("lockedPIN")
             }
         }
         .task {

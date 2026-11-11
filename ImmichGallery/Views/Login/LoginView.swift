@@ -9,6 +9,7 @@ struct LoginView: View {
     private enum Method: String, CaseIterable { case password = "Email & Password", apiKey = "API Key" }
 
     @State private var step = Step.server
+    private var isServerStep: Bool { if case .server = step { true } else { false } }
     #if DEBUG
     @State private var serverText = AccountStore.lastServer ?? "https://demo.immich.app"
     #else
@@ -54,8 +55,12 @@ struct LoginView: View {
                     .font(.callout)
                     .frame(maxWidth: 380)
                     .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
             }
         }
+        // The server step gives way to the sign-in step, and errors fade in, rather than the form jumping.
+        .animation(.smooth(duration: 0.3), value: isServerStep)
+        .animation(.smooth(duration: 0.25), value: errorMessage)
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .disabled(isWorking)
@@ -99,7 +104,7 @@ struct LoginView: View {
             }
 
             if features.passwordLogin {
-                Picker("Method", selection: $method) {
+                Picker("Method", selection: $method.animation(.smooth(duration: 0.25))) {
                     ForEach(Method.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
                 }
                 .pickerStyle(.segmented)

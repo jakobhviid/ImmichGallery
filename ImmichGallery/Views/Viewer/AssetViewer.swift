@@ -233,6 +233,9 @@ private struct ZoomableImage: View {
                     ProgressView().controlSize(.large)
                 }
             }
+            // The photo fades in over its blurred placeholder, and the HDR version over the photo.
+            .animation(.easeOut(duration: 0.2), value: image == nil)
+            .animation(.easeOut(duration: 0.3), value: hdrImage != nil)
             .frame(width: swapsAxes ? geo.size.height : geo.size.width, height: swapsAxes ? geo.size.width : geo.size.height)
             .rotationEffect(.degrees(Double(rotation)))
             .frame(width: geo.size.width, height: geo.size.height)

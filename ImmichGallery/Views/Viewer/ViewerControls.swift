@@ -35,14 +35,14 @@ struct ViewerIntegration: ViewModifier {
         content
             .environment(\.viewerContext, state)
             .focusedSceneValue(\.viewerState, state)
-            .toolbar {
+            .toolbar(id: "viewer") {
                 if let state {
-                    ToolbarItem {
+                    ToolbarItem(id: "slideshow", showsByDefault: false) { // View > Start Slideshow
                         Button { state.present(slideshow: true) } label: { Label("Slideshow", systemImage: "play.rectangle") }
                             .disabled(model.totalCount == 0 || state.preparing)
                     }
                     if model.viewerID != nil {
-                        ToolbarItem {
+                        ToolbarItem(id: "fullScreen", showsByDefault: false) {
                             Button { state.present(slideshow: false) } label: { Label("Full Screen", systemImage: "arrow.up.left.and.arrow.down.right") }
                         }
                     }
@@ -132,8 +132,10 @@ struct ViewerPresentation: View {
                 .adaptiveGlass(in: .capsule)
                 .padding(24)
                 .onHover { overControls = $0 }
+                .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: state.controlsVisible)
         .environment(\.colorScheme, .dark)
         .animation(state.fade ? .easeInOut(duration: 0.35) : nil, value: state.model.viewerID)
         .focusedSceneValue(\.viewerState, state)

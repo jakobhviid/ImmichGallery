@@ -166,13 +166,13 @@ struct SidebarLayout {
         entries.insert(Entry(link: link.rawValue, group: sectionID), at: index)
         return entries != previous
     }
-}
 
-/// A row accepts insertion above or below its midpoint, without moving anything during hover.
-enum SidebarInsertionEdge {
-    case before, after
-
-    init(locationY: Double, rowHeight: Double) {
-        self = locationY > rowHeight / 2 ? .after : .before
+    /// Moves a link to where a list drop landed among the rows a section shows: before the row at `index`, or after the
+    /// last row. Hidden rows in between keep their place.
+    @discardableResult
+    mutating func move(_ link: SidebarLink, to sectionID: String, at index: Int, among shown: [SidebarLink]) -> Bool {
+        if shown.indices.contains(index) { return move(link, to: sectionID, relativeTo: shown[index]) }
+        guard let last = shown.last else { return move(link, to: sectionID) }
+        return move(link, to: sectionID, relativeTo: last, after: true)
     }
 }

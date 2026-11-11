@@ -11,6 +11,8 @@ struct PeopleView: View {
     @State private var hasMore = true
     @State private var isLoading = false
     @State private var requestID = UUID()
+    /// A new filter's first page replaces the people shown, with an animation, instead of emptying the page first.
+    @State private var replacing = false
     @State private var error: String?
     @State private var editing: Person?
     @State private var merging: Person?
@@ -66,8 +68,10 @@ struct PeopleView: View {
                         Task { await loadMore() }
                     }
                 }.padding().background(.bar)
+                .transition(.opacity)
             }
         }
+        .animation(.smooth(duration: 0.25), value: error)
         .sheet(item: $editing) { person in
             PersonEditSheet(person: person) { _ in changed() }
         }
@@ -76,7 +80,7 @@ struct PeopleView: View {
                 mergePair = (person, $0)
             }
         }
-        .confirmationDialog("Merge People?", isPresented: Binding(get: { mergePair != nil }, set: { if !$0 { mergePair = nil } })) {
+        .confirmationDialog("Merge People?", isPresented: Binding(get: { mergePair != nil }, set: { if !$0 { mergePair = nil } }), titleVisibility: .visible) {
             Button("Merge", role: .destructive) {
                 guard let pair = mergePair else { return }
                 mergePair = nil
@@ -94,11 +98,16 @@ struct PeopleView: View {
         .navigationDestination(for: Person.self) { person in
             PersonDetailView(person: person)
         }
-        .toolbar { ToolbarItem { viewOptions } }
+        .pageToolbar("people") {
+            ToolbarItem(id: "show", placement: .principal) {
+                ToolbarModePicker(selection: $show, options: PeopleShow.allCases) { $0.title }
+            }
+            ToolbarItem(id: "viewOptions") { viewOptions }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .peopleChanged, object: session.services)) { _ in revision += 1 }
         .task(id: "\(show.rawValue)-\(includeHidden)-\(revision)") {
             requestID = UUID(); isLoading = false
-            people = []; page = 1; hasMore = true; error = nil
+            replacing = !people.isEmpty; page = 1; hasMore = true; error = nil
             await loadMore()
         }
     }
@@ -107,16 +116,12 @@ struct PeopleView: View {
 
     private var viewOptions: some View {
         Menu {
-            Picker("Show", selection: $show) {
-                ForEach(PeopleShow.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.inline)
-            Divider()
             Toggle("Include Hidden People", isOn: Binding(get: { arrangement.withHidden }, set: { includeHidden = $0 }))
                 .disabled(show == .hidden)
         } label: {
-            Label("View Options", systemImage: arrangement.isFiltered ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            Label("View Options", systemImage: includeHidden && show != .hidden ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
         }
+        .menuIndicator(.hidden)
         .help("View Options")
     }
 
@@ -146,9 +151,14 @@ struct PeopleView: View {
                                                                    filters: arrangement.filters(server: session.version))
                 try Task.checkCancellation()
                 guard currentRequest == requestID else { return }
-                let known = Set(people.map(\.id))
+                let known = replacing ? [] : Set(people.map(\.id))
                 let shown = response.people.filter { arrangement.includes(isFavorite: $0.isFavorite, isHidden: $0.isHidden) && !known.contains($0.id) }
-                people += shown
+                if replacing {
+                    replacing = false
+                    withAnimation(.smooth(duration: 0.35)) { people = shown }
+                } else {
+                    people += shown
+                }
                 added += shown.count
                 hasMore = response.hasNextPage ?? (!response.people.isEmpty && page * 100 < response.total)
                 page += 1
@@ -166,6 +176,8 @@ struct PeopleView: View {
 struct PersonCell: View {
     @Environment(LibrarySession.self) private var session
     let person: Person
+    /// Off in the person's own header, which shows the name itself.
+    var showsName = true
     @State private var image: CGImage?
 
     var body: some View {
@@ -177,18 +189,21 @@ struct PersonCell: View {
                 }
                 .clipShape(Circle())
                 .aspectRatio(1, contentMode: .fit)
-            HStack(spacing: 4) {
-                if person.isFavorite == true { Image(systemName: "heart.fill").foregroundStyle(.red) }
-                if person.isHidden { Image(systemName: "eye.slash").foregroundStyle(.secondary) }
-            }.font(.caption)
-            Text(person.name.isEmpty ? String(localized: "Add Name") : person.name)
-                .font(.callout)
-                .foregroundStyle(person.name.isEmpty ? .secondary : .primary)
-                .lineLimit(1)
+            if showsName {
+                HStack(spacing: 4) {
+                    if person.isFavorite == true { Image(systemName: "heart.fill").foregroundStyle(.red) }
+                    if person.isHidden { Image(systemName: "eye.slash").foregroundStyle(.secondary) }
+                }.font(.caption)
+                Text(person.name.isEmpty ? String(localized: "Add Name") : person.name)
+                    .font(.callout)
+                    .foregroundStyle(person.name.isEmpty ? .secondary : .primary)
+                    .lineLimit(1)
+            }
         }
         .contentShape(Rectangle())
         .task(id: person.id) {
-            image = await session.pipeline.personThumbnail(person.id)
+            let loaded = await session.pipeline.personThumbnail(person.id)
+            withAnimation(.easeOut(duration: 0.2)) { image = loaded }
         }
         .onReceive(NotificationCenter.default.publisher(for: .personThumbnailChanged, object: session.services)) { notification in
             guard notification.userInfo?["personID"] as? String == person.id else { return }

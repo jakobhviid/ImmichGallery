@@ -183,6 +183,7 @@ struct AppCommands: Commands {
     @FocusedValue(\.gridModel) private var grid
     @FocusedValue(\.librarySession) private var session
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
+    @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @AppStorage("showInspector") private var showInspector = false
 
     var body: some Commands {
@@ -243,6 +244,7 @@ struct AppCommands: Commands {
                 .keyboardShortcut("+", modifiers: .command)
             Button("Zoom Out") { thumbnailSize = GridMetrics.zoomOut(thumbnailSize) }
                 .keyboardShortcut("-", modifiers: .command)
+            Button(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio") { aspectRatio.toggle() }
             Divider()
             Button("Refresh") {
                 if let session = session {

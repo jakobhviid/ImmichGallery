@@ -69,6 +69,9 @@ private struct AccountNotificationsPopover: View {
             }
         }
         .frame(width: 340, height: notifications.isEmpty ? 200 : 380)
+        // Read and deleted notifications leave the list, and the popover resizes, with an animation.
+        .animation(.smooth(duration: 0.3), value: notifications.map(\.id))
+        .animation(.smooth(duration: 0.3), value: notifications.map { $0.readAt == nil })
         .modifier(BusyDisabled(busy: operation.busy))
         .task { operation.run { try await session.reloadNotifications() } }
     }

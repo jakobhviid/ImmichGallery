@@ -53,28 +53,25 @@ struct ExplorePlacesView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 240))], spacing: 20) {
                 if groupBy == .country {
                     ForEach(groups) { group in
-                        NavigationLink {
-                            ExplorePlacesCountryView(title: Self.title(group.header), places: group.places)
-                        } label: {
+                        NavigationLink(value: PlacesCountryRoute(title: Self.title(group.header), ids: group.places.map(\.id))) {
                             ExploreCountryCard(title: Self.title(group.header), places: group.places)
                         }.buttonStyle(.plain)
                     }
                 } else {
                     ForEach(cities) { ExplorePlaceCell(asset: $0, showsCountry: true) }
                 }
-            }.padding(20)
+            }
+            .padding(20)
+            // Switching between cities and countries replaces the grid with a transition, as Photos switches views.
+            .id(groupBy)
+            .transition(.blurReplace)
         }
-        .toolbar {
-            ToolbarItem {
-                Menu {
-                    Picker("Show", selection: $groupBy) {
-                        ForEach(PlacesGroupBy.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.inline)
-                } label: {
-                    Label("View Options", systemImage: "line.3.horizontal.decrease.circle")
-                }
-                .help("View Options")
+        .navigationDestination(for: PlacesCountryRoute.self) { route in
+            ExplorePlacesCountryView(title: route.title, places: cities.filter { route.ids.contains($0.id) })
+        }
+        .pageToolbar("places") {
+            ToolbarItem(id: "show", placement: .principal) {
+                ToolbarModePicker(selection: $groupBy.animation(.smooth(duration: 0.35)), options: PlacesGroupBy.allCases) { $0.title }
             }
         }
         .overlay { if let error { ContentUnavailableView("Places Unavailable", systemImage: "globe", description: Text(error)) } }
@@ -92,6 +89,11 @@ struct ExplorePlacesView: View {
     }
 }
 
+struct PlacesCountryRoute: Hashable {
+    let title: String
+    let ids: [String]
+}
+
 /// A country's cities, opened from its card.
 struct ExplorePlacesCountryView: View {
     let title: String
@@ -103,6 +105,7 @@ struct ExplorePlacesCountryView: View {
             }.padding(20)
         }
         .navigationTitle(title)
+        .pageToolbar("placesCountry")
     }
 }
 
@@ -143,9 +146,7 @@ private struct ExplorePlaceCell: View {
     let showsCountry: Bool
     var body: some View {
         if let city = asset.exifInfo?.city {
-            NavigationLink {
-                AssetGridContainer(source: .explore(.city(city)), title: Text(city))
-            } label: {
+            NavigationLink(value: GridRoute(source: .explore(.city(city)), title: city)) {
                 VStack(alignment: .leading) {
                     RemoteThumbnail(pipeline: session.pipeline, assetID: asset.id).aspectRatio(1, contentMode: .fit).clipShape(.rect(cornerRadius: 10))
                     Text(city).font(.headline)
@@ -163,11 +164,12 @@ struct ExploreFoldersView: View {
     @State private var error: String?
     var body: some View {
         List(roots, children: \.children) { node in
-            NavigationLink {
-                AssetGridContainer(source: .explore(.folder(node.id)), title: Text(node.name))
-            } label: { Label(node.name, systemImage: "folder") }.help(node.id)
+            NavigationLink(value: GridRoute(source: .explore(.folder(node.id)), title: node.name)) {
+                Label(node.name, systemImage: "folder")
+            }.help(node.id)
         }
         .overlay { if let error { ContentUnavailableView("Folders Unavailable", systemImage: "folder", description: Text(error)) } }
+        .pageToolbar("folders")
         .task {
             do { roots = ExploreFolderNode.tree(try await session.client.explorePaths()) }
             catch { self.error = error.localizedDescription }
