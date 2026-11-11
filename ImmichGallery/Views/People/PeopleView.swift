@@ -11,7 +11,7 @@ struct PeopleView: View {
     @State private var hasMore = true
     @State private var isLoading = false
     @State private var requestID = UUID()
-    /// A new filter's first page replaces the people shown, with an animation, instead of emptying the page first.
+    /// A new filter's first page replaces the people shown, instead of emptying the page first.
     @State private var replacing = false
     @State private var error: String?
     @State private var editing: Person?
@@ -155,7 +155,7 @@ struct PeopleView: View {
                 let shown = response.people.filter { arrangement.includes(isFavorite: $0.isFavorite, isHidden: $0.isHidden) && !known.contains($0.id) }
                 if replacing {
                     replacing = false
-                    withAnimation(.smooth(duration: 0.35)) { people = shown }
+                    people = shown
                 } else {
                     people += shown
                 }

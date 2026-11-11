@@ -120,7 +120,7 @@ struct SearchView: View {
                         ForEach(query.filterChips, id: \.id) { chip in
                             HStack(spacing: 4) {
                                 Button(chip.title) { draft = query; showFilters = true }
-                                Button { withAnimation(.smooth(duration: 0.25)) { query.remove(chip.id) } } label: { Image(systemName: "xmark.circle.fill") }
+                                Button { query.remove(chip.id) } label: { Image(systemName: "xmark.circle.fill") }
                                     .accessibilityLabel("Remove \(chip.title) filter")
                             }
                             .buttonStyle(.plain).padding(6).background(.quaternary, in: Capsule())
@@ -128,7 +128,7 @@ struct SearchView: View {
                         Button("Clear Filters") {
                             let text = query.text; let mode = query.mode; let sort = query.sort
                             var cleared = SearchQuery(); cleared.text = text; cleared.mode = mode; cleared.sort = sort
-                            withAnimation(.smooth(duration: 0.25)) { query = cleared }
+                            query = cleared
                         }
                     }.padding(.horizontal, 16).padding(.bottom, 8)
                 }
