@@ -1,3 +1,5 @@
+import LocalAuthentication
+import LocalAuthenticationEmbeddedUI
 import SwiftUI
 
 /// Unlocks the Locked Folder with the account PIN and then shows it like any other grid. The grid runs in its
@@ -17,9 +19,13 @@ struct ExploreLockedView: View {
     @State private var expiryTask: Task<Void, Never>?
     @State private var inactivityTask: Task<Void, Never>?
     @State private var inactivity = LockedFolderInactivity()
-    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = false
-    /// Touch ID is offered once by itself as the page opens; after that, from its button.
-    @State private var offeredTouchID = false
+    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = true
+    /// The PIN was chosen instead of Touch ID, until the folder locks again.
+    @State private var usePIN = false
+    /// Each Touch ID attempt has its own context, shown by the fingerprint view and checked by it.
+    @State private var touchContext = LAContext()
+    @State private var touchAttempt = 0
+    @State private var touchFailed = false
 
     /// The kept PIN for this server and user.
     private var touchIDKey: String { LockedFolderTouchID.key(server: session.client.serverURL, userID: session.user?.id ?? "") }
@@ -46,25 +52,9 @@ struct ExploreLockedView: View {
                         }
                     }
             } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "lock.fill").font(.system(size: 48)).foregroundStyle(.secondary)
-                    Text(status?.pinCode == false ? "Set Up Locked Folder" : "Unlock Locked Folder").font(.title2)
-                    if canUseTouchID {
-                        Button { Task { await unlockWithTouchID() } } label: { Label("Unlock with Touch ID", systemImage: "touchid") }
-                            .controlSize(.large)
-                            .disabled(busy)
-                        Text("or enter the PIN").font(.caption).foregroundStyle(.secondary)
-                    }
-                    SecureField("Six-digit PIN", text: $pin).frame(width: 220)
-                    if status?.pinCode == false { SecureField("Confirm PIN", text: $confirmation).frame(width: 220) }
-                    Button(status?.pinCode == false ? "Set PIN and Unlock" : "Unlock") { Task { await unlock() } }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(status == nil || busy || pin.range(of: "^[0-9]{6}$", options: .regularExpression) == nil || (status?.pinCode == false && pin != confirmation))
-                    Text("Locks when you leave the Locked Folder, lock the screen, or keep the app inactive for 15 minutes.").font(.caption).foregroundStyle(.secondary)
-                    if touchIDEnabled && status?.pinCode == true && LockedFolderTouchID.isAvailable && !canUseTouchID {
-                        Text("Unlock with the PIN once, and Touch ID unlocks it from then on.").font(.caption).foregroundStyle(.secondary)
-                    }
-                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                Group {
+                    if canUseTouchID && !usePIN { touchIDPrompt } else { pinForm }
+                }
                 .pageToolbar("lockedPIN")
             }
         }
@@ -73,12 +63,9 @@ struct ExploreLockedView: View {
             guard session.client.exploreSupportsLockedFolder else { return }
             do { status = try await Self.uncached(session.client) { try await $0.exploreAuth() } }
             catch { self.error = error.localizedDescription }
-            if canUseTouchID, !offeredTouchID, unlocked == nil {
-                offeredTouchID = true
-                await unlockWithTouchID()
-            }
         }
         .onDisappear {
+            touchContext.invalidate()
             session.lockFolder = {}
             generation = UUID()
             lock()
@@ -103,10 +90,71 @@ struct ExploreLockedView: View {
         return try await request(client)
     }
 
-    /// Touch ID, then the kept PIN. Cancelling leaves the PIN field.
+    /// After the first unlock with the PIN: the fingerprint, in the page, read as soon as it shows. Touching the sensor
+    /// unlocks; Use PIN is there if Touch ID can't be used.
+    private var touchIDPrompt: some View {
+        VStack(spacing: 16) {
+            LockedFolderTouchIDView(context: touchContext)
+                .frame(width: 72, height: 72)
+                .id(touchAttempt)
+            Text("Unlock Locked Folder").font(.title2)
+            Text(touchFailed ? "Touch ID didn't unlock the Locked Folder." : "Touch ID to unlock")
+                .foregroundStyle(.secondary)
+            HStack(spacing: 16) {
+                if touchFailed { Button("Try Again") { retryTouchID() } }
+                Button("Use PIN") { touchContext.invalidate(); usePIN = true }
+            }
+            .buttonStyle(.link)
+            .disabled(busy)
+            Text("Locks when you leave the Locked Folder, lock the screen, or keep the app inactive for 15 minutes.").font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: touchAttempt) { await unlockWithTouchID() }
+    }
+
+    /// Setting up the PIN, the first unlock, and the fallback from Touch ID.
+    private var pinForm: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "lock.fill").font(.system(size: 48)).foregroundStyle(.secondary)
+            Text(status?.pinCode == false ? "Set Up Locked Folder" : "Unlock Locked Folder").font(.title2)
+            SecureField("Six-digit PIN", text: $pin).frame(width: 220)
+            if status?.pinCode == false { SecureField("Confirm PIN", text: $confirmation).frame(width: 220) }
+            Button(status?.pinCode == false ? "Set PIN and Unlock" : "Unlock") { Task { await unlock() } }
+                .keyboardShortcut(.defaultAction)
+                .disabled(status == nil || busy || pin.range(of: "^[0-9]{6}$", options: .regularExpression) == nil || (status?.pinCode == false && pin != confirmation))
+            if canUseTouchID {
+                Button("Use Touch ID") { usePIN = false; retryTouchID() }.buttonStyle(.link)
+            }
+            Text("Locks when you leave the Locked Folder, lock the screen, or keep the app inactive for 15 minutes.").font(.caption).foregroundStyle(.secondary)
+            if touchIDEnabled && LockedFolderTouchID.isAvailable && !canUseTouchID {
+                Text("Unlock with the PIN once, and Touch ID unlocks it from then on.").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Reads the fingerprint in the page, then unlocks with the kept PIN.
     private func unlockWithTouchID() async {
-        guard !busy, case .pin(let code) = await LockedFolderTouchID.pin(for: touchIDKey) else { return }
-        await unlock(code, viaTouchID: true)
+        guard canUseTouchID, !usePIN, !busy else { return }
+        touchFailed = false
+        switch await LockedFolderTouchID.pin(for: touchIDKey, context: touchContext) {
+        case .pin(let code):
+            await unlock(code, viaTouchID: true)
+            if unlocked == nil { touchFailed = true }
+        case .cancelled:
+            touchFailed = true
+        case .unavailable:
+            // The fingerprints changed, or Touch ID isn't available now: the PIN, once.
+            usePIN = true
+        }
+    }
+
+    /// A fresh context for the next fingerprint.
+    private func retryTouchID() {
+        touchContext.invalidate()
+        touchContext = LAContext()
+        touchFailed = false
+        touchAttempt += 1
     }
 
     private func unlock() async { await unlock(pin, viaTouchID: false) }
@@ -195,6 +243,9 @@ struct ExploreLockedView: View {
     private func lock() {
         // A screen lock must invalidate an unlock that is still waiting for the server.
         generation = UUID()
+        // Ready for the fingerprint again.
+        usePIN = false
+        retryTouchID()
         inactivityTask?.cancel()
         inactivityTask = nil
         inactivity = LockedFolderInactivity()

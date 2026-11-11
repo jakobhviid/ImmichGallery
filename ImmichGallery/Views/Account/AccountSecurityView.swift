@@ -15,7 +15,7 @@ struct AccountSecurityView: View {
     @State private var invalidateSessions = false
     @State private var pendingAction: (@MainActor () async throws -> Void)?
     @State private var confirming = false
-    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = false
+    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = true
 
     var body: some View {
         Form {

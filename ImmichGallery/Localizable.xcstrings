@@ -8135,16 +8135,6 @@
         }
       }
     },
-    "or enter the PIN": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "oppure inserisci il PIN"
-          }
-        }
-      }
-    },
     "Unlock with the PIN once, and Touch ID unlocks it from then on.": {
       "localizations": {
         "it": {
@@ -8171,6 +8161,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Touch ID non è configurato su questo Mac."
+          }
+        }
+      }
+    },
+    "Touch ID didn't unlock the Locked Folder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch ID non ha sbloccato la cartella bloccata."
+          }
+        }
+      }
+    },
+    "Touch ID to unlock": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Touch ID per sbloccare"
+          }
+        }
+      }
+    },
+    "Use PIN": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il PIN"
+          }
+        }
+      }
+    },
+    "Use Touch ID": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Touch ID"
           }
         }
       }

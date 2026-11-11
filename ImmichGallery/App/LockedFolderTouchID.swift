@@ -1,5 +1,6 @@
-import Foundation
 import LocalAuthentication
+import LocalAuthenticationEmbeddedUI
+import SwiftUI
 import Security
 
 /// Touch ID for the Locked Folder. Immich unlocks it only with the PIN, so the PIN is kept in the login keychain, as
@@ -7,9 +8,8 @@ import Security
 /// PIN again, as Apple's "current fingerprints" keychain items do, and a PIN the server no longer takes is forgotten.
 @MainActor
 enum LockedFolderTouchID {
-    /// Settings ▸ Security ▸ Unlock with Touch ID; off until turned on.
+    /// Settings ▸ Security ▸ Unlock with Touch ID; on unless turned off.
     static let enabledKey = "lockedFolder.touchID"
-    static var isEnabled: Bool { UserDefaults.standard.bool(forKey: enabledKey) }
 
     /// Touch ID is set up on this Mac.
     static var isAvailable: Bool {
@@ -38,10 +38,10 @@ enum LockedFolderTouchID {
         SecItemAdd(item as CFDictionary, nil)
     }
 
-    /// Asks for Touch ID, then gives the kept PIN.
-    static func pin(for key: String) async -> Outcome {
+    /// Asks for Touch ID, then gives the kept PIN. With the context of a Touch ID view on screen, the fingerprint is
+    /// read in that view rather than in a system dialog.
+    static func pin(for key: String, context: LAContext) async -> Outcome {
         guard let stored = read(key) else { return .unavailable }
-        let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else { return .unavailable }
         if let fingerprints = stored.fingerprints, context.domainState.biometry.stateHash != fingerprints {
@@ -88,4 +88,15 @@ enum LockedFolderTouchID {
         var deleted = 0
         while deleted < 64, SecItemDelete(query as CFDictionary) == errSecSuccess { deleted += 1 }
     }
+}
+
+/// The Touch ID fingerprint in the page, which reads the finger for its context instead of a system dialog.
+struct LockedFolderTouchIDView: NSViewRepresentable {
+    let context: LAContext
+
+    func makeNSView(context: Context) -> LAAuthenticationView {
+        LAAuthenticationView(context: self.context, controlSize: .large)
+    }
+
+    func updateNSView(_ view: LAAuthenticationView, context: Context) {}
 }
