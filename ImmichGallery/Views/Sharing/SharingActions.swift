@@ -18,7 +18,8 @@ struct SharingMenu: View {
         Menu {
             SharingMenuItems(assetIDs: assetIDs, allowPublicLinks: allowPublicLinks, albumID: albumID)
         } label: { Label("Share", systemImage: "square.and.arrow.up") }
-        .disabled(assetIDs.isEmpty && albumID == nil)
+        // Never an empty menu: with nothing to share, the button is dimmed.
+        .disabled(assetIDs.isEmpty && !(albumID != nil && allowPublicLinks && session.sharing.linksAvailable))
     }
 }
 

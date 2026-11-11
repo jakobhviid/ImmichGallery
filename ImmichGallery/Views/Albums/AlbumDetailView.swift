@@ -85,6 +85,11 @@ struct AlbumDetailView: View {
             if isOwner {
                 Button("Edit Album…") { editing = true }
                 Button("Manage Sharing…") { sharing = true }
+                if session.sharing.linksAvailable {
+                    Button("Create Album Public Link…") {
+                        session.sharing.presentation = .init(kind: .create, assetIDs: [], albumID: album.id)
+                    }
+                }
             } else if isMember {
                 Button("View Members…") { sharing = true }
             }

@@ -267,8 +267,9 @@ struct AssetGridHost<Header: View>: View {
                 .help("Show Info (⌘I)")
         }
         if model.source != .locked {
+            // The selection's: dimmed with nothing selected, as in Photos. Sharing an album is in its Album menu.
             ToolbarItem(id: "share") { // Sharing
-                SharingMenu(assetIDs: ids, allowPublicLinks: model.canMutate(ids), albumID: { if case .album(let id) = model.source { return id }; return nil }())
+                SharingMenu(assetIDs: ids, allowPublicLinks: model.canMutate(ids))
                     .menuIndicator(.hidden)
                     .disabled(!grid)
             }
