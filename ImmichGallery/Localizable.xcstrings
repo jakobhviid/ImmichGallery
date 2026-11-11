@@ -8115,6 +8115,66 @@
         }
       }
     },
+    "unlock the Locked Folder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sbloccare la cartella bloccata"
+          }
+        }
+      }
+    },
+    "Unlock with Touch ID": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca con Touch ID"
+          }
+        }
+      }
+    },
+    "or enter the PIN": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oppure inserisci il PIN"
+          }
+        }
+      }
+    },
+    "Unlock with the PIN once, and Touch ID unlocks it from then on.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca una volta con il PIN, e da allora Touch ID la sblocca."
+          }
+        }
+      }
+    },
+    "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your keychain on this Mac, and forgotten when you turn this off.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo che hai sbloccato la cartella bloccata una volta con il PIN, Touch ID la sblocca. Il PIN viene conservato nel portachiavi di questo Mac e dimenticato quando disattivi questa opzione."
+          }
+        }
+      }
+    },
+    "This Mac doesn't have Touch ID set up.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch ID non è configurato su questo Mac."
+          }
+        }
+      }
+    },
     "Selected Location": {
       "localizations": {
         "it": {

@@ -15,6 +15,7 @@ struct AccountSecurityView: View {
     @State private var invalidateSessions = false
     @State private var pendingAction: (@MainActor () async throws -> Void)?
     @State private var confirming = false
+    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = false
 
     var body: some View {
         Form {
@@ -34,6 +35,17 @@ struct AccountSecurityView: View {
                         }
                     }.disabled(password.isEmpty || newPassword.count < 8 || newPassword != confirmPassword)
                     Text("Use at least 8 characters.").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if session.client.exploreSupportsLockedFolder {
+                Section("Locked Folder") {
+                    Toggle("Unlock with Touch ID", isOn: $touchIDEnabled)
+                        .disabled(!LockedFolderTouchID.isAvailable && !touchIDEnabled)
+                        .onChange(of: touchIDEnabled) { _, enabled in if !enabled { LockedFolderTouchID.forgetAll() } }
+                    Text(LockedFolderTouchID.isAvailable
+                         ? "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your keychain on this Mac, and forgotten when you turn this off."
+                         : "This Mac doesn't have Touch ID set up.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             if !keysUnavailable {

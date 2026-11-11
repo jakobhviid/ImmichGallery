@@ -17,6 +17,15 @@ struct ExploreLockedView: View {
     @State private var expiryTask: Task<Void, Never>?
     @State private var inactivityTask: Task<Void, Never>?
     @State private var inactivity = LockedFolderInactivity()
+    @AppStorage(LockedFolderTouchID.enabledKey) private var touchIDEnabled = false
+    /// Touch ID is offered once by itself as the page opens; after that, from its button.
+    @State private var offeredTouchID = false
+
+    /// The kept PIN for this server and user.
+    private var touchIDKey: String { LockedFolderTouchID.key(server: session.client.serverURL, userID: session.user?.id ?? "") }
+    private var canUseTouchID: Bool {
+        touchIDEnabled && status?.pinCode == true && LockedFolderTouchID.isAvailable && LockedFolderTouchID.hasPIN(for: touchIDKey)
+    }
 
     var body: some View {
         Group {
@@ -40,12 +49,21 @@ struct ExploreLockedView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "lock.fill").font(.system(size: 48)).foregroundStyle(.secondary)
                     Text(status?.pinCode == false ? "Set Up Locked Folder" : "Unlock Locked Folder").font(.title2)
+                    if canUseTouchID {
+                        Button { Task { await unlockWithTouchID() } } label: { Label("Unlock with Touch ID", systemImage: "touchid") }
+                            .controlSize(.large)
+                            .disabled(busy)
+                        Text("or enter the PIN").font(.caption).foregroundStyle(.secondary)
+                    }
                     SecureField("Six-digit PIN", text: $pin).frame(width: 220)
                     if status?.pinCode == false { SecureField("Confirm PIN", text: $confirmation).frame(width: 220) }
                     Button(status?.pinCode == false ? "Set PIN and Unlock" : "Unlock") { Task { await unlock() } }
                         .keyboardShortcut(.defaultAction)
                         .disabled(status == nil || busy || pin.range(of: "^[0-9]{6}$", options: .regularExpression) == nil || (status?.pinCode == false && pin != confirmation))
                     Text("Locks when you leave the Locked Folder, lock the screen, or keep the app inactive for 15 minutes.").font(.caption).foregroundStyle(.secondary)
+                    if touchIDEnabled && status?.pinCode == true && LockedFolderTouchID.isAvailable && !canUseTouchID {
+                        Text("Unlock with the PIN once, and Touch ID unlocks it from then on.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 .pageToolbar("lockedPIN")
             }
@@ -55,6 +73,10 @@ struct ExploreLockedView: View {
             guard session.client.exploreSupportsLockedFolder else { return }
             do { status = try await Self.uncached(session.client) { try await $0.exploreAuth() } }
             catch { self.error = error.localizedDescription }
+            if canUseTouchID, !offeredTouchID, unlocked == nil {
+                offeredTouchID = true
+                await unlockWithTouchID()
+            }
         }
         .onDisappear {
             session.lockFolder = {}
@@ -81,17 +103,35 @@ struct ExploreLockedView: View {
         return try await request(client)
     }
 
-    private func unlock() async {
+    /// Touch ID, then the kept PIN. Cancelling leaves the PIN field.
+    private func unlockWithTouchID() async {
+        guard !busy, case .pin(let code) = await LockedFolderTouchID.pin(for: touchIDKey) else { return }
+        await unlock(code, viaTouchID: true)
+    }
+
+    private func unlock() async { await unlock(pin, viaTouchID: false) }
+
+    private func unlock(_ code: String, viaTouchID: Bool) async {
         busy = true
         let attempt = generation
-        let account = session.client, services = session.services
+        let account = session.client, services = session.services, key = touchIDKey
         defer { busy = false; pin = ""; confirmation = "" }
         do {
             let setup = status?.pinCode == false
-            let status = try await Self.uncached(account) { [pin] client in
-                try await client.exploreUnlock(pin, setup: setup)
-                return try await client.exploreAuth()
+            let status: ExploreAuthStatus
+            do {
+                status = try await Self.uncached(account) { client in
+                    try await client.exploreUnlock(code, setup: setup)
+                    return try await client.exploreAuth()
+                }
+            } catch {
+                // A kept PIN the server turns down has been changed: forget it, and the PIN field takes over.
+                if viaTouchID, case ImmichError.http(400..<500, _) = error { LockedFolderTouchID.forget(key) }
+                if viaTouchID, case ImmichError.unauthorized = error { LockedFolderTouchID.forget(key) }
+                throw error
             }
+            // Touch ID unlocks with this PIN from now on.
+            if touchIDEnabled, !viaTouchID, LockedFolderTouchID.isAvailable { LockedFolderTouchID.save(code, for: key) }
             self.status = status
             // Left the Locked Folder while unlocking.
             guard attempt == generation else { try? await Self.uncached(account) { try await $0.exploreLock() }; return }
