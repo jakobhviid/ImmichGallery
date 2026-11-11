@@ -52,6 +52,7 @@ struct AssetGridHost<Header: View>: View {
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @State private var pendingDelete: [String]?
+    @State private var pendingRemoval: [String]?
     @State private var tagRequest: ExploreTagRequest?
     @State private var playLive = false
     @State private var utilities = AssetsUtilities()
@@ -88,7 +89,7 @@ struct AssetGridHost<Header: View>: View {
                     AssetGridView(model: model, onDelete: requestDelete, onTags: { ids, removing in
                         guard model.canMutate(ids) else { return }
                         tagRequest = ExploreTagRequest(ids: ids, removing: removing)
-                    }, scrollHeader: headerScrolls ? AnyView(header) : nil)
+                    }, onRemove: requestRemoval, scrollHeader: headerScrolls ? AnyView(header) : nil)
                 }
             }
             // Switching between Years, Months and All Photos replaces the view with a transition, as in Photos.
@@ -100,7 +101,7 @@ struct AssetGridHost<Header: View>: View {
                 AssetViewer(model: model, item: item, playLive: $playLive, onDelete: requestDelete, onTags: { ids, removing in
                     guard model.canMutate(ids) else { return }
                     tagRequest = ExploreTagRequest(ids: ids, removing: removing)
-                })
+                }, onRemove: requestRemoval)
                     .id("\(item.id)-\(session.metadata.imageRevision)") // Metadata
                     .transition(.opacity)
             }
@@ -137,6 +138,7 @@ struct AssetGridHost<Header: View>: View {
         .gridViewOptionsReloader(model)
         .onChange(of: session.upload.revision) { Task { await model.reload() } } // Upload
         .focusedSceneValue(\.gridModel, model)
+        .focusedSceneValue(\.libraryMode, model.source == .library ? $libraryMode.animation(.smooth(duration: 0.35)) : nil)
         .selectAllTarget(model, enabled: overview == nil)
         .confirmationDialog(deleteTitle, isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
             Button(model.source == .trash || model.source == .locked ? "Delete Permanently" : "Delete", role: .destructive) {
@@ -147,6 +149,19 @@ struct AssetGridHost<Header: View>: View {
             Text(deletesPermanently
                  ? "This can't be undone."
                  : "Items are moved to Recently Deleted.")
+        }
+        // Photos undoes a removal with ⌘Z; without undo, ⌫ asks first. An alert, not a destructive confirmation, so
+        // Return accepts, as in Photos, and ⌫ then Return works without the pointer.
+        .alert(removalTitle, isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })) {
+            Button("Remove from Album") {
+                let ids = pendingRemoval ?? []
+                guard let id = model.source.albumID else { return }
+                session.albumActions.perform(session: session, albumID: id) { try await model.removeFromAlbum(ids) }
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The photos remain in your library.")
         }
         .alert("Something Went Wrong", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) {
             Button("OK") {}
@@ -192,6 +207,15 @@ struct AssetGridHost<Header: View>: View {
     private func requestDelete(_ ids: [String]) {
         guard model.canDelete(ids) else { return }
         pendingDelete = ids
+    }
+
+    private var removalTitle: String {
+        String(localized: "Remove \(pendingRemoval?.count ?? 0) items from the album?")
+    }
+
+    private func requestRemoval(_ ids: [String]) {
+        guard let id = model.source.albumID, session.albumActions.details[id]?.canEdit(session.user?.id) == true else { return }
+        pendingRemoval = ids
     }
 
     /// Photos' toggle between square photos and whole photos in their own shape.
@@ -350,6 +374,8 @@ struct AssetGridView: View {
     @Bindable var model: AssetGridModel
     let onDelete: ([String]) -> Void
     let onTags: ([String], Bool) -> Void
+    /// ⌫ in an album: takes the photos out of it.
+    var onRemove: ([String]) -> Void = { _ in }
     /// Above the photos, scrolling with them.
     var scrollHeader: AnyView?
 
@@ -524,6 +550,14 @@ struct AssetGridView: View {
         .focusable()
         .focusEffectDisabled()
         .onKeyPress(action: handleKey)
+        // ⌫ is the key of the Edit menu's Delete, which takes it before the grid sees it.
+        .onDeleteCommand { delete(Array(model.selection), command: false) }
+    }
+
+    /// As in Photos: ⌘⌫ deletes; ⌫ takes the photos out of an album, and deletes them elsewhere.
+    private func delete(_ ids: [String], command: Bool) {
+        guard !ids.isEmpty else { return }
+        if command || model.source.albumID == nil { onDelete(ids) } else { onRemove(ids) }
     }
 
     private func scrollToViewerTarget(_ proxy: ScrollViewProxy) {
@@ -589,8 +623,8 @@ struct AssetGridView: View {
             guard let first = model.selectedItems.first else { return .ignored }
             model.open(first.id)
         case .delete, .deleteForward:
-            guard press.modifiers.contains(.command), !ids.isEmpty else { return .ignored }
-            onDelete(ids)
+            guard !ids.isEmpty, press.modifiers.isDisjoint(with: [.shift, .option, .control]) else { return .ignored }
+            delete(ids, command: press.modifiers.contains(.command))
         case .leftArrow, .rightArrow, .upArrow, .downArrow:
             // Command with an arrow is left to the menus and the system.
             guard !press.modifiers.contains(.command) else { return .ignored }

@@ -120,25 +120,31 @@ The demo is shared with everyone and doesn't accept uploads.
 <details>
 <summary><b>Keyboard shortcuts</b></summary>
 
-| Action                         | Shortcut |
-| :----------------------------- | :------- |
-| Search                         | ⌘F |
-| Search filters                 | ⌥⌘F |
-| Info inspector                 | ⌘I |
-| Favorite                       | . |
-| Archive                        | ⌃⌘A |
-| Delete / restore               | ⌘⌫ |
-| Bigger / smaller thumbnails    | ⌘+ / ⌘− |
-| Refresh                        | ⌘R |
-| Import                         | ⇧⌘I |
-| Export unmodified original     | ⇧⌘E |
-| New album                      | ⌥⌘N |
-| Rotate left / right            | ⌥⌘R / ⇧⌥⌘R |
-| Copy image                     | ⌘C |
-| Move through photos / extend the selection | Arrow keys / ⇧ arrow keys |
-| Quick Look (arrow keys step through) | Space |
-| New window / new tab           | ⌘N / ⌘T |
-| Administration (admins)        | ⌥⌘A |
+| Action                                                        | Shortcut |
+| :------------------------------------------------------------ | :------- |
+| Search                                                        | ⌘F |
+| Search filters                                                | ⌥⌘F |
+| Years / Months / All Photos                                   | ⌘1 / ⌘2 / ⌘3 |
+| Info inspector                                                | ⌘I |
+| Favorite                                                      | . |
+| Archive / unarchive                                           | ⌘L |
+| Remove from album (in an album; elsewhere, delete)            | ⌫ |
+| Delete                                                        | ⌘⌫ |
+| Bigger / smaller thumbnails, or zoom the open photo           | ⌘+ / ⌘− |
+| Zoom the open photo in, or back to fit                        | Z |
+| Play a Live Photo                                             | ⌥Space |
+| Refresh                                                       | ⌘R |
+| Import                                                        | ⇧⌘I |
+| Export unmodified original                                    | ⇧⌘E |
+| New album                                                     | ⌥⌘N |
+| Use as album cover                                            | ⇧⌘K |
+| Rotate left / right                                           | ⇧⌘R / ⌥⌘R |
+| Copy image                                                    | ⌘C |
+| Move through photos / extend the selection                    | Arrow keys / ⇧ arrow keys |
+| Select all / deselect all                                     | ⌘A / ⇧⌘A |
+| Quick Look (arrow keys step through)                          | Space |
+| New window / new tab                                          | ⌘N / ⌘T |
+| Administration (admins)                                       | ⌥⌘A |
 
 </details>
 

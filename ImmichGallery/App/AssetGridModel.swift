@@ -788,6 +788,13 @@ final class AssetGridModel {
         } catch { report(error) }
     }
 
+    /// Takes photos out of the album the grid shows; they stay in the library.
+    func removeFromAlbum(_ ids: [String]) async throws {
+        guard let albumID = source.albumID, let session else { return }
+        try await session.client.changeAlbumAssets(albumID, ids: ids, removing: true)
+        remove(ids)
+    }
+
     func restore(_ ids: [String]) async {
         guard canDelete(ids), let session else { return }
         do {

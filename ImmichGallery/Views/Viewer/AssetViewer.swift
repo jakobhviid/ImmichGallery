@@ -9,6 +9,8 @@ struct AssetViewer: View {
     @Binding var playLive: Bool
     let onDelete: ([String]) -> Void
     var onTags: ([String], Bool) -> Void = { _, _ in }
+    /// ⌫ in an album: takes the photo out of it.
+    var onRemove: ([String]) -> Void = { _ in }
 
     @Environment(\.viewerContext) private var viewer
     var isPresentation = false
@@ -89,8 +91,15 @@ struct AssetViewer: View {
         .focusEffectDisabled()
         .onAppear { isFocused = true }
         .onKeyPress(action: handleKey)
+        // ⌫ is the key of the Edit menu's Delete, which takes it before the viewer sees it.
+        .onDeleteCommand { delete(command: false) }
         .onExitCommand { if isPresentation { viewer?.close() } else { model.viewerID = nil } }
         .task(id: item.id) { await prefetchNeighbours() }
+    }
+
+    /// As in Photos: ⌘⌫ deletes; ⌫ takes the photo out of an album, and deletes it elsewhere.
+    private func delete(command: Bool) {
+        if command || model.source.albumID == nil { onDelete([item.id]) } else { onRemove([item.id]) }
     }
 
     private var media: some View {
@@ -169,6 +178,11 @@ struct AssetViewer: View {
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
         guard !(NSApp.keyWindow?.firstResponder is NSText) else { return .ignored }
+        // Photos' ⌥Space plays a Live Photo; it doesn't close the photo as Space does.
+        if press.key == .space, press.modifiers.contains(.option) {
+            if item.livePhotoVideoID != nil { playLive.toggle() }
+            return .handled
+        }
         if isPresentation {
             if press.key == .escape { viewer?.close(); return .handled }
             if press.key == .return { return .handled }
@@ -182,11 +196,16 @@ struct AssetViewer: View {
         case .rightArrow: step(1)
         case .space where !item.isVideo, .escape, .return: model.viewerID = nil
         case .delete, .deleteForward:
-            guard press.modifiers.contains(.command) else { return .ignored }
-            onDelete([item.id])
+            guard press.modifiers.isDisjoint(with: [.shift, .option, .control]) else { return .ignored }
+            delete(command: press.modifiers.contains(.command))
         default:
-            guard press.characters == "." else { return .ignored }
-            Task { await model.toggleFavorite([item.id]) }
+            if press.characters == "z", press.modifiers.isEmpty, !item.isVideo {
+                viewer?.zoom(.toggle)
+            } else if press.characters == "." {
+                Task { await model.toggleFavorite([item.id]) }
+            } else {
+                return .ignored
+            }
         }
         return .handled
     }
@@ -202,6 +221,7 @@ private struct ZoomableImage: View {
     var showsFaces = true
     @Binding var isZoomed: Bool
     @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
+    @Environment(\.viewerContext) private var viewer
 
     @State private var image: CGImage?
     @State private var hdrImage: CGImage?
@@ -266,6 +286,22 @@ private struct ZoomableImage: View {
         .onChange(of: scale * gestureScale) { _, value in isZoomed = value > 1 }
         .onChange(of: scale) { _, newValue in
             if newValue > 1.1 { hasOriginal = true }
+        }
+        .onChange(of: viewer?.zoomRequest) { _, request in
+            if let request { zoom(request.zoom) }
+        }
+    }
+
+    /// Keeps the point in the middle of the view where it is, as pinching does.
+    private func zoom(_ zoom: ViewerState.Zoom) {
+        let target: CGFloat = switch zoom {
+        case .zoomIn: min(8, scale * 1.5)
+        case .zoomOut: max(1, scale / 1.5)
+        case .toggle: scale > 1 ? 1 : 2.5
+        }
+        withAnimation(.snappy) {
+            offset = target <= 1 ? .zero : CGSize(width: offset.width * target / scale, height: offset.height * target / scale)
+            scale = target
         }
     }
 

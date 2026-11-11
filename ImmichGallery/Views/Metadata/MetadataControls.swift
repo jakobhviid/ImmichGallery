@@ -24,7 +24,7 @@ struct MetadataMenuItems: View {
     @ViewBuilder private func rotateButton(_ title: String, clockwise: Bool) -> some View {
         let button = Button(title) { rotate(clockwise) }
         if menuBarShortcuts {
-            button.keyboardShortcut("r", modifiers: clockwise ? [.command, .option] : [.command, .option, .shift])
+            button.keyboardShortcut("r", modifiers: clockwise ? [.command, .option] : [.command, .shift])
         } else { button }
     }
 

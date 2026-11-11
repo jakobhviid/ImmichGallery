@@ -4,6 +4,8 @@ struct AlbumSelectionMenu: View {
     let session: LibrarySession
     let model: AssetGridModel?
     let ids: [String]
+    /// The menu bar's Image menu shows the keys, which a context menu leaves out.
+    var menuBarShortcuts = false
 
     var body: some View {
         Menu("Add to Album") {
@@ -20,19 +22,17 @@ struct AlbumSelectionMenu: View {
         .disabled(ids.isEmpty || model?.source == .trash)
         if let id = model?.source.albumID {
             Button("Remove from Album") {
-                session.albumActions.perform(session: session, albumID: id) {
-                    try await session.client.changeAlbumAssets(id, ids: ids, removing: true)
-                    model?.selection.subtract(ids)
-                }
+                session.albumActions.perform(session: session, albumID: id) { try await model?.removeFromAlbum(ids) }
             }
             .disabled(ids.isEmpty || session.albumActions.details[id]?.canEdit(session.user?.id) != true)
-            Button("Use as Album Cover") {
+            let cover = Button("Use as Album Cover") {
                 guard let assetID = ids.first else { return }
                 session.albumActions.perform(session: session, albumID: id, reloadTimeline: false) {
                     _ = try await session.client.updateAlbum(id, AlbumUpdate(albumThumbnailAssetId: assetID))
                 }
             }
             .disabled(ids.count != 1 || session.albumActions.details[id]?.isOwner(session.user?.id) != true)
+            if menuBarShortcuts { cover.keyboardShortcut("k", modifiers: [.command, .shift]) } else { cover } // Photos' Make Key Photo
         }
     }
 }
