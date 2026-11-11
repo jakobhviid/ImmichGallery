@@ -32,7 +32,7 @@ struct AssetsUtilitiesMenu: View {
     let model: AssetGridModel
     let utilities: AssetsUtilities
 
-    private static func supportsLocation(_ source: GridSource) -> Bool {
+    static func supportsLocation(_ source: GridSource) -> Bool {
         switch source {
         case .library, .favorites, .videos, .archive, .largeFiles, .geolocation, .person, .locked: true
         case .album, .search, .filteredSearch, .partner, .explore, .trash: false

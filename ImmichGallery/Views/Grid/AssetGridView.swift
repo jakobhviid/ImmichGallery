@@ -290,6 +290,13 @@ struct AssetGridHost<Header: View>: View {
             }
             ToolbarItem(id: "rotate") { rotateButton(ids).disabled(!grid) }
         }
+        if model.source == .geolocation {
+            // The page is for this, so the button is always there.
+            ToolbarItem(id: "assignLocationPage") { assignLocationButton(ids).disabled(!grid) }
+                .customizationBehavior(.disabled)
+        } else if AssetsUtilitiesMenu.supportsLocation(model.source) {
+            ToolbarItem(id: "assignLocation", showsByDefault: false) { assignLocationButton(ids).disabled(!grid) }
+        }
         ToolbarItem(id: "download") {
             Button {
                 Exporter.exportOriginals(ids, session: session)
@@ -308,6 +315,15 @@ struct AssetGridHost<Header: View>: View {
             }
         }
         SearchToolbarItem()
+    }
+
+    /// Assign Location… for the selection, as in the Image menu and the More menu.
+    private func assignLocationButton(_ ids: [String]) -> some View {
+        Button { session.metadata.present(.location, ids: ids.sorted()) } label: {
+            Label("Assign Location…", systemImage: "mappin.and.ellipse")
+        }
+        .disabled(ids.isEmpty || !model.canMutate(ids))
+        .help("Assign Location…")
     }
 
     /// Photos' Rotate: to the left, or to the right with Option.

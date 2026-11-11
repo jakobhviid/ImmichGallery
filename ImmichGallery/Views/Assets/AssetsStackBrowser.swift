@@ -103,12 +103,16 @@ struct AssetsPreview: View {
     var clickToPlay = false
     @State private var playing = false
     @State private var image: CGImage?
+    /// Which photo `image` is, so choosing another one cross-fades between them.
+    @State private var imageID: String?
     var body: some View {
         Group {
             if asset.type == .video && (!clickToPlay || playing) {
                 VideoPlayerView(url: session.client.videoURL(asset.id), headers: session.client.credential?.headers ?? [:]).id(asset.id)
             } else if let image {
                 Image(decorative: image, scale: 1).resizable().scaledToFit()
+                    .id(imageID)
+                    .transition(.opacity)
             } else { ProgressView() }
         }
         .overlay {
@@ -116,6 +120,12 @@ struct AssetsPreview: View {
                 Button { playing = true } label: { Label("Play Video", systemImage: "play.circle.fill") }.buttonStyle(.borderedProminent)
             }
         }
-        .task(id: "\(asset.id)-\(session.metadata.imageRevision)") { playing = false; image = nil; image = await session.pipeline.thumbnail(asset.id, size: .preview) }
+        .task(id: "\(asset.id)-\(session.metadata.imageRevision)") {
+            // The previous photo stays until the next has loaded, then they cross-fade, instead of a spinner between.
+            playing = false
+            let loaded = await session.pipeline.thumbnail(asset.id, size: .preview)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.2)) { image = loaded; imageID = asset.id }
+        }
     }
 }

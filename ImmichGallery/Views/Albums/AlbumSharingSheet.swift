@@ -19,9 +19,15 @@ struct AlbumSharingSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(owner ? "Share Album" : "Album Members").font(.title2.bold())
-            if let owner = album.albumOwner { Text("Owner: \(owner.name)").foregroundStyle(.secondary) }
+            if let owner = album.albumOwner {
+                HStack(spacing: 8) {
+                    UserAvatar(user: owner, size: 24)
+                    Text("Owner: \(owner.name)").foregroundStyle(.secondary)
+                }
+            }
             List(album.albumUsers ?? []) { member in
                 HStack {
+                    UserAvatar(user: member.user, size: 28)
                     VStack(alignment: .leading) { Text(member.user.name); Text(member.user.email).font(.caption).foregroundStyle(.secondary) }
                     Spacer()
                     if owner && member.id != album.albumOwner?.id {

@@ -105,6 +105,8 @@ struct AccountSettingsTabs: View {
             UpdateSettingsView().tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }.tag("updates")
         }
         .frame(width: 640, height: tab == "general" ? 440 : tab == "updates" ? 320 : tab == "crosslink" ? 420 : 650)
+        // The window changes height with the tab, as the system's settings windows do.
+        .animation(.smooth(duration: 0.25), value: tab)
         .onChange(of: app.services == nil, initial: true) { _, signedOut in
             if signedOut, !["general", "accounts", "updates", "crosslink"].contains(tab) { tab = "general" }
         }
