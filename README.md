@@ -106,6 +106,7 @@ The demo is shared with everyone and doesn't accept uploads.
 | Several windows and tabs, Quick Look, drag and drop              | ✅ |
 | Customizable sidebar, edited in place, with collapsible sections and a choice of how many albums it lists | ✅ |
 | Shortcuts actions and the macOS share sheet                      | ✅ |
+| Show in other Immich apps ([Immich Crosslink](https://jakob.hviid.phd/immich-crosslink/)), Open in Immich, Copy Immich Link | ✅ |
 | Desktop widgets: photos (featured, album, person, place, favorites, chosen), mosaic, library | ✅ |
 | In-app updates, optionally automatic                             | ✅ |
 | English and Italian                                              | ✅ |
@@ -139,6 +140,15 @@ The demo is shared with everyone and doesn't accept uploads.
 </details>
 
 When filtering Library to photos or videos only, results contain your own items. Partner photos remain available in the unfiltered Library and on partner pages. Date Added sorting is available for the unfiltered timeline on Immich v3.0 or later.
+
+### Works with other Immich apps
+
+Immich Gallery takes part in [Immich Crosslink](https://jakob.hviid.phd/immich-crosslink/), an open protocol for links
+between Immich apps on the same Mac. With another app that takes part installed, such as
+[Immich Mount](https://github.com/jakobhviid/immich-mount), which shows your library as a drive in Finder, photos,
+albums, people and places get a **Show in** item for it, and the gallery opens what that app sends in return. There is
+nothing to set up: apps find each other once they are installed, and Settings ▸ Other Apps turns this off, for every
+app or for one.
 
 ## Screenshots
 

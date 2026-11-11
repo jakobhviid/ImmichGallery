@@ -40,6 +40,7 @@ cases = {
     'places-arrangement': models + ['ImmichGallery/API/Models+Metadata.swift', app('PlacesArrangement'), 'Tests/PlacesArrangementChecks.swift'],
     'people-arrangement': models + [app('PeopleArrangement'), 'Tests/PeopleArrangementChecks.swift'],
     'duplicates-arrangement': models + [app('DuplicatesArrangement'), 'Tests/DuplicatesArrangementChecks.swift'],
+    'crosslink': [app('Crosslink'), 'Tests/CrosslinkChecks.swift'],
 }
 
 def check(item):

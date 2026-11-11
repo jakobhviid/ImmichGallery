@@ -63,7 +63,11 @@ struct AlbumsView: View {
                         if !isCollapsed {
                             ForEach(group.albums) { album in
                                 NavigationLink(value: album) { AlbumCell(album: album, pipeline: session.pipeline) }.buttonStyle(.plain)
-                                    .contextMenu { MacAlbumWindowMenu(albumID: album.id) } // MacIntegration
+                                    .contextMenu {
+                                        MacAlbumWindowMenu(albumID: album.id) // MacIntegration
+                                        Divider()
+                                        CrosslinkMenuItems(item: .album(album.id)) // Crosslink
+                                    }
                             }
                         }
                     } header: {
@@ -117,7 +121,11 @@ struct AlbumsView: View {
             }
         }
         .contextMenu(forSelectionType: Album.ID.self) { ids in
-            if ids.count == 1, let id = ids.first { MacAlbumWindowMenu(albumID: id) } // MacIntegration
+            if ids.count == 1, let id = ids.first {
+                MacAlbumWindowMenu(albumID: id) // MacIntegration
+                Divider()
+                CrosslinkMenuItems(item: .album(id)) // Crosslink
+            }
         } primaryAction: { ids in
             openedAlbum = session.albums.first { ids.contains($0.id) }
         }

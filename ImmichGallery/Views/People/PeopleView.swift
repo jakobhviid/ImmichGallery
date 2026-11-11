@@ -46,6 +46,8 @@ struct PeopleView: View {
                                     Button(person.isFavorite == true ? "Unfavorite Person" : "Favorite Person") {
                                         update(person, PersonEdit(isFavorite: person.isFavorite != true))
                                     }
+                                    Divider()
+                                    CrosslinkMenuItems(item: .person(person.id)) // Crosslink
                                 }
                                 .onAppear { if person.id == people.last?.id { Task { await loadMore() } } }
                         }

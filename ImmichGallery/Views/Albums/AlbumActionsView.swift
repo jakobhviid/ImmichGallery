@@ -123,6 +123,7 @@ struct AlbumSidebarRows: View {
                 .id(SidebarItem.album(album.id))
                 .contextMenu {
                     MacAlbumWindowMenu(albumID: album.id)
+                    CrosslinkMenuItems(item: .album(album.id)) // Crosslink
                     Divider()
                     Button("Hide from Sidebar") {
                         var layout = SidebarLayout(stored: storedLayout)

@@ -596,6 +596,7 @@ struct AssetActionsMenu: View {
         if model.source != .locked {
             ViewerContextMenu(model: model, asset: asset)
             if model.source != .trash { WidgetChosenMenuItem(ids: ids) } // Widget
+            if model.source != .trash, ids.count <= 1 { CrosslinkMenuItems(item: .asset(asset.id, model.source.crosslinkContext)) } // Crosslink
         }
         Divider()
         if model.source == .locked {

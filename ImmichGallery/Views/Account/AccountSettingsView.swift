@@ -101,11 +101,12 @@ struct AccountSettingsTabs: View {
                     .tabItem { Label("Preferences", systemImage: "switch.2") }.tag("preferences")
             }
             AccountSwitcherView().tabItem { Label("Accounts", systemImage: "person.2") }.tag("accounts")
+            CrosslinkSettingsView().tabItem { Label("Other Apps", systemImage: "link") }.tag("crosslink") // Crosslink
             UpdateSettingsView().tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }.tag("updates")
         }
-        .frame(width: 640, height: tab == "general" ? 440 : tab == "updates" ? 320 : 650)
+        .frame(width: 640, height: tab == "general" ? 440 : tab == "updates" ? 320 : tab == "crosslink" ? 420 : 650)
         .onChange(of: app.services == nil, initial: true) { _, signedOut in
-            if signedOut, !["general", "accounts", "updates"].contains(tab) { tab = "general" }
+            if signedOut, !["general", "accounts", "updates", "crosslink"].contains(tab) { tab = "general" }
         }
     }
 }

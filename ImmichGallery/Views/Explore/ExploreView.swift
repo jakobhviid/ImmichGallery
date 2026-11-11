@@ -152,6 +152,7 @@ private struct ExplorePlaceCell: View {
                     if showsCountry { Text(asset.exifInfo?.country ?? "").foregroundStyle(.secondary) }
                 }
             }.buttonStyle(.plain)
+            .contextMenu { CrosslinkMenuItems(item: .place(.init(city: city, country: asset.exifInfo?.country))) } // Crosslink
         }
     }
 }

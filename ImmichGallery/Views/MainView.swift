@@ -19,6 +19,8 @@ struct MainView: View {
     @State private var showSearchFilters = false
     @State private var editingSidebar = false
     @State private var columnVisibility = NavigationSplitViewVisibility.automatic
+    @State private var path = NavigationPath() // Crosslink: a person or a place a link names, and pushed pages
+    @Environment(\.openWindow) private var openWindow
     @FocusState private var searchFocused: Bool
 
     init(initialAlbumID: String? = nil, initialSearch: String? = nil) {
@@ -29,11 +31,14 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            SidebarView(selection: $selection, editing: $editingSidebar)
+            SidebarView(selection: Binding(get: { selection }, set: { select($0) }), editing: $editingSidebar)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
         } detail: {
-            NavigationStack {
+            NavigationStack(path: $path) {
                 detail
+                    .navigationDestination(for: CrosslinkDestination.self) { destination in // Crosslink
+                        AssetGridContainer(source: destination.source, title: Text(verbatim: destination.title))
+                    }
             }
             .id(selection)
             .modifier(AccountPasswordBanner())
@@ -44,7 +49,7 @@ struct MainView: View {
         .modifier(AlbumPresentation()) // Albums
         .onChange(of: session.albumActions.navigationAlbumID) { _, id in
             if let id {
-                selection = .album(id)
+                select(.album(id))
                 session.albumActions.navigationAlbumID = nil
             }
         }
@@ -55,23 +60,94 @@ struct MainView: View {
         .onChange(of: editingSidebar) { _, editing in if editing { columnVisibility = .all } }
         .focusedSceneValue(\.librarySession, session)
         .focusedSceneValue(\.searchActions, SearchActions(
-            find: { selection = .search; searchFocused = true },
-            filters: { selection = .search; showSearchFilters = true }))
-        .onReceive(NotificationCenter.default.publisher(for: .viewerShowLibrary, object: session)) { _ in selection = .library }
+            find: { select(.search); searchFocused = true },
+            filters: { select(.search); showSearchFilters = true }))
+        .onReceive(NotificationCenter.default.publisher(for: .viewerShowLibrary, object: session)) { _ in select(.library) }
+        .onReceive(NotificationCenter.default.publisher(for: .crosslinkShow, object: session)) { note in // Crosslink
+            if let item = note.userInfo?["item"] as? Crosslink.Item { showCrosslink(item) }
+        }
         .onSubmit(of: .search) {
             let query = searchText.trimmingCharacters(in: .whitespaces)
             guard !query.isEmpty else { return }
             submittedSearch = query
-            selection = .search
+            select(.search)
         }
         .onChange(of: selection) { _, newValue in
             if newValue != .search { searchText = ""; submittedSearch = ""; showSearchFilters = false }
         }
         .onChange(of: session.sharing.receivedPartners.map(\.id)) { _, ids in
-            if case .partner(let id) = selection, !ids.contains(id) { selection = .partners }
+            if case .partner(let id) = selection, !ids.contains(id) { select(.partners) }
         }
         .onChange(of: searchText) { _, text in
             if text.isEmpty, selection == .search { submittedSearch = "" }
+        }
+    }
+
+    /// Changes the page, clearing pages pushed on the old one first, so the new page's stack never sees them.
+    private func select(_ item: SidebarItem?) {
+        path = NavigationPath()
+        selection = item
+    }
+
+    // Crosslink: shows what a link from another app names, in the page Immich's web app would show it on.
+    private func showCrosslink(_ item: Crosslink.Item) {
+        switch item {
+        case .page(let page):
+            let target: SidebarItem = switch page {
+            case .photos: .library
+            case .albums: .albums
+            case .people: .people
+            case .places: .explore(.places)
+            case .favorites: .favorites
+            case .archive: .archive
+            }
+            select(target)
+        case .album(let id): select(.album(id))
+        case .person(let id): openPerson(id)
+        case .place(let place): open(.explore(.places), pushing: CrosslinkDestination.place(place))
+        case .asset(let id, let context):
+            let alone = { openWindow(id: "widget-photo", value: id) } // as the desktop widget shows a photo
+            switch context {
+            case .album(let album)?:
+                select(.album(album))
+                session.crosslinkReveal(id, in: .album(album), alone: alone)
+            case .person(let person)?:
+                openPerson(person) { session.crosslinkReveal(id, in: .person(person), alone: alone) }
+            case .favorites?:
+                select(.favorites)
+                session.crosslinkReveal(id, in: .favorites, alone: alone)
+            case .archive?:
+                select(.archive)
+                session.crosslinkReveal(id, in: .archive, alone: alone)
+            case .search(let place)?:
+                let destination = CrosslinkDestination.place(place)
+                open(.explore(.places), pushing: destination)
+                session.crosslinkReveal(id, in: destination.source, alone: alone)
+            case nil:
+                select(.library)
+                session.crosslinkReveal(id, in: .library, alone: alone)
+            }
+        }
+    }
+
+    /// Selects a page, then pushes onto it once its stack exists (a new selection makes a new stack).
+    private func open(_ page: SidebarItem, pushing value: some Hashable) {
+        select(page)
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            guard selection == page else { return } // the user, or the link, moved on meanwhile
+            path = NavigationPath()
+            path.append(value)
+        }
+    }
+
+    private func openPerson(_ id: String, then: @escaping () -> Void = {}) {
+        Task {
+            do {
+                let person = try await session.client.person(id)
+                open(.people, pushing: person)
+                then()
+            } catch { CrosslinkReceiver.cannotShow(error, session: session) }
         }
     }
 
@@ -93,7 +169,7 @@ struct MainView: View {
         case .albums:
             AlbumsView()
         case .album(let id):
-            AlbumDetailView(id: id, onClose: { selection = .albums }) // Albums
+            AlbumDetailView(id: id, onClose: { select(.albums) }) // Albums
         case .sharedLinks: SharedLinksView() // Sharing
         case .partners: PartnersView() // Sharing
         case .partner(let id): AssetGridContainer(source: .partner(id), title: Text(session.sharing.receivedPartners.first { $0.id == id }?.name ?? "Partner Library")) // Sharing

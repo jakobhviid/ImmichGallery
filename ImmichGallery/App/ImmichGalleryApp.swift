@@ -24,7 +24,8 @@ struct ImmichGalleryApp: App {
         .windowToolbarStyle(.unified)
         .onChange(of: MacIntegrationRouter.shared.pending, initial: true) { openPendingIntents() }
         .onChange(of: MacIntegrationRouter.shared.widgetLinks, initial: true) { openWidgetLinks() } // Widget
-        .onChange(of: app.services.map(ObjectIdentifier.init)) { openPendingIntents(); openWidgetLinks() }
+        .onChange(of: MacIntegrationRouter.shared.crosslinks, initial: true) { openCrosslinks() } // Crosslink
+        .onChange(of: app.services.map(ObjectIdentifier.init)) { openPendingIntents(); openWidgetLinks(); openCrosslinks() }
         .commands { AppCommands(app: app); AdminCommands(app: app); UploadCommands(app: app); ViewerCommands(); MacIntegrationCommands(); UpdateCommands(updater: .shared) }
 
         AdminScene(app: app) // Admin
@@ -44,6 +45,21 @@ struct ImmichGalleryApp: App {
         let routes = MacIntegrationRouter.shared.pending
         MacIntegrationRouter.shared.pending.removeAll()
         for route in routes { openWindow(id: "main", value: route) }
+    }
+
+    // Crosslink: links wait until the app knows whether it is signed in.
+    private func openCrosslinks() {
+        let router = MacIntegrationRouter.shared
+        guard !router.crosslinks.isEmpty else { return }
+        if case .launching = app.phase {
+            Task { try? await Task.sleep(for: .milliseconds(300)); openCrosslinks() }
+            return
+        }
+        let links = router.crosslinks
+        router.crosslinks.removeAll()
+        for link in links {
+            CrosslinkReceiver.open(link, app: app) { openWindow(id: "main", value: MacWindowRoute()) }
+        }
     }
 
     // Widget

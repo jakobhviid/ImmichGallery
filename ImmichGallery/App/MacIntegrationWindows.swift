@@ -95,8 +95,13 @@ final class MacIntegrationLifecycle: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleURL(_ event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) {
-        guard let text = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
-              let url = URL(string: text), let link = WidgetFeed.Link(url) else { return }
+        guard let text = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue else { return }
+        // Crosslink: links from other Immich apps, read and checked when the app shows them.
+        if text.lowercased().hasPrefix(Crosslink.scheme + ":") {
+            MainActor.assumeIsolated { MacIntegrationRouter.shared.crosslinks.append(text) }
+            return
+        }
+        guard let url = URL(string: text), let link = WidgetFeed.Link(url) else { return }
         MainActor.assumeIsolated { MacIntegrationRouter.shared.widgetLinks.append(link) }
     }
 

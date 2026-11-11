@@ -7,6 +7,7 @@ final class MacIntegrationRouter {
     weak var app: AppModel?
     var pending: [MacWindowRoute] = []
     var widgetLinks: [WidgetFeed.Link] = [] // Widget
+    var crosslinks: [String] = [] // Crosslink: links other apps sent, as they came
 }
 
 struct SearchPhotosIntent: AppIntent {

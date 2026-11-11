@@ -7705,6 +7705,246 @@
         }
       }
     },
+    "Copy Immich Link": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia link Immich"
+          }
+        }
+      }
+    },
+    "Show in %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra in %@"
+          }
+        }
+      }
+    },
+    "This link from another app is not valid.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo link da un'altra app non è valido."
+          }
+        }
+      }
+    },
+    "Immich Gallery cannot show what this link from another app names.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immich Gallery non può mostrare ciò che indica questo link da un'altra app."
+          }
+        }
+      }
+    },
+    "Immich Gallery is not signed in to %@ with this account.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immich Gallery non ha effettuato l'accesso a %@ con questo account."
+          }
+        }
+      }
+    },
+    "Immich Crosslink": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immich Crosslink"
+          }
+        }
+      }
+    },
+    "Another app asked Immich Gallery to show an item, but Immich Crosslink is turned off.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un'altra app ha chiesto a Immich Gallery di mostrare un elemento, ma Immich Crosslink è disattivato."
+          }
+        }
+      }
+    },
+    "Turn On": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva"
+          }
+        }
+      }
+    },
+    "Other Apps": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altre app"
+          }
+        }
+      }
+    },
+    "Show photos, albums, people and places in other apps that take part, and open the items they send to Immich Gallery.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra foto, album, persone e luoghi nelle altre app che partecipano e apri gli elementi che inviano a Immich Gallery."
+          }
+        }
+      }
+    },
+    "Apps That Take Part": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App che partecipano"
+          }
+        }
+      }
+    },
+    "The signed-in account cannot see what this link from another app names.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'account connesso non può vedere ciò che indica questo link da un'altra app."
+          }
+        }
+      }
+    },
+    "Open in Immich": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri in Immich"
+          }
+        }
+      }
+    },
+    "Immich Web App": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App web di Immich"
+          }
+        }
+      }
+    },
+    "Open in Immich and Copy Immich Link": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri in Immich e Copia link Immich"
+          }
+        }
+      }
+    },
+    "Open photos, albums, people and places in Immich's web app in your browser, or copy their address.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri foto, album, persone e luoghi nell'app web di Immich nel browser, o copiane l'indirizzo."
+          }
+        }
+      }
+    },
+    "%@ is no longer installed.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ non è più installata."
+          }
+        }
+      }
+    },
+    "Immich Gallery could not open %@: %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immich Gallery non ha potuto aprire %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Forget": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimentica"
+          }
+        }
+      }
+    },
+    "Learn more…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ulteriori informazioni…"
+          }
+        }
+      }
+    },
+    "Not found": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non trovata"
+          }
+        }
+      }
+    },
+    "No other app that takes part has been found.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun'altra app partecipante è stata trovata."
+          }
+        }
+      }
+    },
+    "See the apps that take part…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vedi le app che partecipano…"
+          }
+        }
+      }
+    },
+    "Apps that take part are found by themselves. Turn one off to leave it out of Show in. One not found stays listed for 30 days, so it stays off if it comes back; Forget removes it now.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le app che partecipano vengono trovate da sole. Disattivane una per escluderla da Mostra in. Un'app non trovata resta in elenco per 30 giorni, così resta disattivata se torna; Dimentica la rimuove subito."
+          }
+        }
+      }
+    },
     "Selected Location": {
       "localizations": {
         "it": {

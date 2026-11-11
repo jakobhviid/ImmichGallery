@@ -24,7 +24,28 @@
 			<key>CFBundleURLSchemes</key>
 			<array><string>$(IMMICH_URL_SCHEME)</string></array>
 		</dict>
+		<dict>
+			<!-- Crosslink: links from other Immich apps (https://jakob.hviid.phd/immich-crosslink/). -->
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).crosslink</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>immich-crosslink</string></array>
+		</dict>
 	</array>
+	<!-- Crosslink: the announcement other Immich apps read without starting this one. -->
+	<key>ImmichCrosslink</key>
+	<dict>
+		<key>Version</key>
+		<string>0.2</string>
+		<key>Shows</key>
+		<array>
+			<string>asset</string>
+			<string>album</string>
+			<string>person</string>
+			<string>place</string>
+			<string>page</string>
+		</array>
+	</dict>
 	<key>ImmichAppGroup</key>
 	<string>$(IMMICH_APP_GROUP)</string>
 	<key>NSAppTransportSecurity</key>
