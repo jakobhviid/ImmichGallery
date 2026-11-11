@@ -109,9 +109,7 @@ struct AssetInspector: View {
             if let lat = exif?.latitude, let lon = exif?.longitude {
                 VStack(alignment: .leading, spacing: 6) {
                     let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                    Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 3000, longitudinalMeters: 3000))) {
-                        Marker("", coordinate: coordinate)
-                    }
+                    InspectorMap(coordinate: coordinate)
                     .frame(height: 180)
                     .clipShape(.rect(cornerRadius: 10))
                     .id("\(lat),\(lon)")
@@ -179,6 +177,34 @@ private struct FlowText: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(items, id: \.self) { Label($0, systemImage: symbol).font(.callout) }
+        }
+    }
+}
+
+/// The photo's place. MapKit's own view rather than SwiftUI's `Map`, so it can leave ⌘+ and ⌘− to the View menu: AppKit
+/// offers key equivalents to every view in the window, and the map took them even while scrolled out of sight, so
+/// they zoomed it instead of the open photo or the grid. It still zooms with the trackpad.
+private struct InspectorMap: NSViewRepresentable {
+    let coordinate: CLLocationCoordinate2D
+
+    func makeNSView(context: Context) -> MapView {
+        let map = MapView()
+        map.setRegion(MKCoordinateRegion(center: coordinate, latitudinalMeters: 3000, longitudinalMeters: 3000), animated: false)
+        let pin = MKPointAnnotation()
+        pin.coordinate = coordinate
+        map.addAnnotation(pin)
+        return map
+    }
+
+    func updateNSView(_ map: MapView, context: Context) {}
+
+    final class MapView: MKMapView {
+        override func performKeyEquivalent(with event: NSEvent) -> Bool {
+            let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
+            if flags.contains(.command), let key = event.charactersIgnoringModifiers, ["+", "=", "-"].contains(key) {
+                return false
+            }
+            return super.performKeyEquivalent(with: event)
         }
     }
 }

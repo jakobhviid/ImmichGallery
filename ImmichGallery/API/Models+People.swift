@@ -40,22 +40,16 @@ struct PeopleFace: Decodable, Sendable, Identifiable {
     let boundingBoxY2: Int
     let person: Person?
 
-    func displayedRect(in size: CGSize, imageSize: CGSize, zoom: CGFloat = 1, offset: CGSize = .zero) -> CGRect {
-        guard imageWidth > 0, imageHeight > 0, imageSize.width > 0, imageSize.height > 0 else { return .zero }
-        let scale = min(size.width / imageSize.width, size.height / imageSize.height)
-        let width = imageSize.width * scale
-        let height = imageSize.height * scale
+    /// The face in the photo as drawn at `size`: Immich's box is in the photo's pixels, so it's the same share of it.
+    func rect(in size: CGSize) -> CGRect {
+        guard imageWidth > 0, imageHeight > 0 else { return .zero }
         let x1 = min(CGFloat(imageWidth), max(0, CGFloat(boundingBoxX1)))
         let y1 = min(CGFloat(imageHeight), max(0, CGFloat(boundingBoxY1)))
         let x2 = min(CGFloat(imageWidth), max(x1, CGFloat(boundingBoxX2)))
         let y2 = min(CGFloat(imageHeight), max(y1, CGFloat(boundingBoxY2)))
-        let rect = CGRect(x: (size.width - width) / 2 + x1 / CGFloat(imageWidth) * width,
-                      y: (size.height - height) / 2 + y1 / CGFloat(imageHeight) * height,
-                      width: (x2 - x1) / CGFloat(imageWidth) * width,
-                      height: (y2 - y1) / CGFloat(imageHeight) * height)
-        return CGRect(x: (rect.minX - size.width / 2) * zoom + size.width / 2 + offset.width,
-                      y: (rect.minY - size.height / 2) * zoom + size.height / 2 + offset.height,
-                      width: rect.width * zoom, height: rect.height * zoom)
+        let scaleX = size.width / CGFloat(imageWidth)
+        let scaleY = size.height / CGFloat(imageHeight)
+        return CGRect(x: x1 * scaleX, y: y1 * scaleY, width: (x2 - x1) * scaleX, height: (y2 - y1) * scaleY)
     }
 }
 

@@ -176,6 +176,10 @@ extension FocusedValues {
     @Entry var gridModel: AssetGridModel?
     /// Library's Years, Months and All Photos, while Library is shown.
     @Entry var libraryMode: Binding<LibraryMode>?
+    /// While a photo is open, on a server that finds faces.
+    @Entry var faceNamesAvailable: Bool?
+    /// While a photo is open: ⌘+ and ⌘− zoom it rather than the grid behind it.
+    @Entry var photoZoom: PhotoZoomAction?
 }
 
 struct AppCommands: Commands {
@@ -184,7 +188,9 @@ struct AppCommands: Commands {
     @FocusedValue(\.sidebarActions) private var sidebarActions
     @FocusedValue(\.gridModel) private var grid
     @FocusedValue(\.libraryMode) private var libraryMode
-    @FocusedValue(\.viewerState) private var viewer
+    @FocusedValue(\.faceNamesAvailable) private var faceNamesAvailable
+    @FocusedValue(\.photoZoom) private var photoZoom
+    @AppStorage(PhotoFaces.shownKey) private var faceNamesShown = false
     @FocusedValue(\.librarySession) private var session
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
@@ -260,15 +266,18 @@ struct AppCommands: Commands {
             libraryModeItem(.months, key: "2")
             libraryModeItem(.all, key: "3")
             Divider()
-            // With a photo open, the photo zooms, as in Photos, not the grid behind it.
+            // The grid's size, so not while a photo hides the grid; the photo has its own buttons.
+            // With a photo open, the photo zooms, as in Photos; the grid behind it doesn't. Not with a video open.
             Button("Zoom In") {
-                if let viewer, viewer.model.viewerID != nil { viewer.zoom(.zoomIn) } else { thumbnailSize = GridMetrics.zoomIn(thumbnailSize) }
+                if let photoZoom { photoZoom.zoom(.zoomIn) } else { thumbnailSize = GridMetrics.zoomIn(thumbnailSize) }
             }
                 .keyboardShortcut("+", modifiers: .command)
+                .disabled(grid?.viewerID != nil && photoZoom == nil)
             Button("Zoom Out") {
-                if let viewer, viewer.model.viewerID != nil { viewer.zoom(.zoomOut) } else { thumbnailSize = GridMetrics.zoomOut(thumbnailSize) }
+                if let photoZoom { photoZoom.zoom(.zoomOut) } else { thumbnailSize = GridMetrics.zoomOut(thumbnailSize) }
             }
                 .keyboardShortcut("-", modifiers: .command)
+                .disabled(grid?.viewerID != nil && photoZoom == nil)
             Button(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio") { aspectRatio.toggle() }
             Divider()
             Button("Refresh") {
@@ -281,6 +290,8 @@ struct AppCommands: Commands {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(grid == nil)
             Divider()
+            Button(faceNamesShown ? "Hide Face Names" : "Show Face Names") { faceNamesShown.toggle() } // Photos' View menu
+                .disabled(faceNamesAvailable != true)
             Button(showInspector ? "Hide Info" : "Show Info") { showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: .command)
             Divider()

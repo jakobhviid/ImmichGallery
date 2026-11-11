@@ -24,15 +24,6 @@ final class ViewerState: NSObject, NSWindowDelegate {
     var playbackGeneration = 0
     var videoStalledElapsed = 0.0
 
-    /// Zooming the open photo from the keyboard: ⌘+ and ⌘− step, Z toggles as double-clicking does.
-    enum Zoom: Equatable { case zoomIn, zoomOut, toggle }
-    struct ZoomRequest: Equatable {
-        let zoom: Zoom
-        let generation: Int
-    }
-    private(set) var zoomRequest: ZoomRequest?
-    func zoom(_ zoom: Zoom) { zoomRequest = ZoomRequest(zoom: zoom, generation: (zoomRequest?.generation ?? 0) + 1) }
-
     private func updateActivity() {
         if slideshow && !paused && activity == nil {
             activity = ProcessInfo.processInfo.beginActivity(options: .idleDisplaySleepDisabled, reason: "Playing a slideshow")

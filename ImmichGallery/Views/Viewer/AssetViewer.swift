@@ -11,6 +11,12 @@ struct AssetViewer: View {
     var onTags: ([String], Bool) -> Void = { _, _ in }
     /// ⌫ in an album: takes the photo out of it.
     var onRemove: ([String]) -> Void = { _ in }
+    /// The toolbar's zoom buttons, ⌘+ and ⌘−.
+    var zoomRequest: PhotoZoomRequest?
+    /// Z, which the page turns into a zoom request.
+    var onZoom: (PhotoZoomRequest.Zoom) -> Void = { _ in }
+    /// The face boxes to draw, while the page shows face names.
+    var faces: [PeopleFace] = []
 
     @Environment(\.viewerContext) private var viewer
     var isPresentation = false
@@ -118,7 +124,8 @@ struct AssetViewer: View {
                     .modifier(ViewerVideoOptionsPlacement(visible: !isPresentation || viewer?.controlsVisible != false))
                     .draggable(OriginalTransfer(id: item.id, isVideo: true, client: session.client))
             } else {
-                ZoomableImage(item: item, rotation: viewer?.rotation ?? 0, showsFaces: !isPresentation, isZoomed: $isZoomed)
+                ZoomableImage(item: item, rotation: viewer?.rotation ?? 0, faces: faces, isZoomed: $isZoomed,
+                              zoomRequest: zoomRequest)
                     .id(item.id)
                 if playLive, let videoID = item.livePhotoVideoID {
                     VideoPlayerView(
@@ -200,7 +207,7 @@ struct AssetViewer: View {
             delete(command: press.modifiers.contains(.command))
         default:
             if press.characters == "z", press.modifiers.isEmpty, !item.isVideo {
-                viewer?.zoom(.toggle)
+                onZoom(.toggle) // Photos' Z
             } else if press.characters == "." {
                 Task { await model.toggleFavorite([item.id]) }
             } else {
@@ -211,6 +218,18 @@ struct AssetViewer: View {
     }
 }
 
+/// Zooming the open photo, from the toolbar's buttons, ⌘+ and ⌘−, or Z; each press is a new request.
+struct PhotoZoomRequest: Equatable {
+    enum Zoom { case zoomIn, zoomOut, toggle }
+    let zoom: Zoom
+    let generation: Int
+}
+
+/// The page's zoom for its open photo, for the View menu's Zoom In and Zoom Out.
+struct PhotoZoomAction {
+    let zoom: (PhotoZoomRequest.Zoom) -> Void
+}
+
 /// Shows the cached thumbnail instantly, then the preview, and fetches the original once the
 /// user zooms in past 1×. Pinch or double-click to zoom, drag or scroll to pan. On an HDR display, HDR
 /// originals are drawn in extended dynamic range over the SDR preview.
@@ -218,10 +237,10 @@ private struct ZoomableImage: View {
     @Environment(LibrarySession.self) private var session
     let item: AssetItem
     let rotation: Int
-    var showsFaces = true
+    var faces: [PeopleFace] = []
     @Binding var isZoomed: Bool
+    var zoomRequest: PhotoZoomRequest?
     @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
-    @Environment(\.viewerContext) private var viewer
 
     @State private var image: CGImage?
     @State private var hdrImage: CGImage?
@@ -244,6 +263,13 @@ private struct ZoomableImage: View {
                         .overlay {
                             if let hdrImage { HDRImageLayer(image: hdrImage).allowsHitTesting(false) }
                         }
+                        // On the photo itself, so the boxes zoom and pan with it.
+                        .overlay {
+                            Group {
+                                if rotation % 360 == 0, !faces.isEmpty { PhotoFaceBoxes(faces: faces, zoom: scale * gestureScale) }
+                            }
+                            .animation(.easeInOut(duration: 0.2), value: faces.isEmpty)
+                        }
                         .macOriginalDraggable(OriginalTransfer(id: item.id, client: session.client),
                                               isEnabled: scale * gestureScale <= 1)
                 } else if let hash = item.thumbhash, let placeholder = ThumbHash.image(base64: hash) {
@@ -261,12 +287,6 @@ private struct ZoomableImage: View {
             .frame(width: geo.size.width, height: geo.size.height)
             .scaleEffect(scale * gestureScale)
             .offset(offset)
-            .overlay {
-                if let image, showsFaces, rotation % 360 == 0 {
-                    PeopleFaceOverlay(assetID: item.id, imageSize: CGSize(width: image.width, height: image.height),
-                                      zoom: scale * gestureScale, offset: offset)
-                }
-            }
             .contentShape(Rectangle())
             .gesture(magnify)
             .simultaneousGesture(pan(in: geo.size), isEnabled: scale * gestureScale > 1)
@@ -287,13 +307,13 @@ private struct ZoomableImage: View {
         .onChange(of: scale) { _, newValue in
             if newValue > 1.1 { hasOriginal = true }
         }
-        .onChange(of: viewer?.zoomRequest) { _, request in
+        .onChange(of: zoomRequest) { _, request in
             if let request { zoom(request.zoom) }
         }
     }
 
-    /// Keeps the point in the middle of the view where it is, as pinching does.
-    private func zoom(_ zoom: ViewerState.Zoom) {
+    /// Keeps the point in the middle of the view where it is, as pinching does. Toggling zooms as double-clicking does.
+    private func zoom(_ zoom: PhotoZoomRequest.Zoom) {
         let target: CGFloat = switch zoom {
         case .zoomIn: min(8, scale * 1.5)
         case .zoomOut: max(1, scale / 1.5)

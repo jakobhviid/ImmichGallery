@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi dei volti"
+          }
+        }
+      }
+    },
+    "Hide Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi nomi dei volti"
+          }
+        }
+      }
+    },
+    "Show Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra nomi dei volti"
+          }
+        }
+      }
+    },
     "Deselect All": {
       "localizations": {
         "it": {
@@ -8635,16 +8665,6 @@
         }
       }
     },
-    "Show Faces": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra volti"
-          }
-        }
-      }
-    },
     "Show Hidden People": {
       "localizations": {
         "it": {
@@ -8701,16 +8721,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra barra delle schede"
-          }
-        }
-      }
-    },
-    "Show faces and manage people": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra volti e gestisci persone"
           }
         }
       }

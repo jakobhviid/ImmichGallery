@@ -53,6 +53,10 @@ struct AssetGridHost<Header: View>: View {
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @State private var pendingDelete: [String]?
     @State private var pendingRemoval: [String]?
+    @State private var photoZoom: PhotoZoomRequest?
+    @State private var showingFaceList = false
+    @State private var photoFaces = PhotoFaces()
+    @AppStorage(PhotoFaces.shownKey) private var faceNamesShown = false
     @State private var tagRequest: ExploreTagRequest?
     @State private var playLive = false
     @State private var utilities = AssetsUtilities()
@@ -101,7 +105,8 @@ struct AssetGridHost<Header: View>: View {
                 AssetViewer(model: model, item: item, playLive: $playLive, onDelete: requestDelete, onTags: { ids, removing in
                     guard model.canMutate(ids) else { return }
                     tagRequest = ExploreTagRequest(ids: ids, removing: removing)
-                }, onRemove: requestRemoval)
+                }, onRemove: requestRemoval, zoomRequest: photoZoom, onZoom: zoomPhoto,
+                            faces: faceNamesShown ? photoFaces.boxes(for: item.id) : [])
                     .id("\(item.id)-\(session.metadata.imageRevision)") // Metadata
                     .transition(.opacity)
             }
@@ -138,6 +143,13 @@ struct AssetGridHost<Header: View>: View {
         .gridViewOptionsReloader(model)
         .onChange(of: session.upload.revision) { Task { await model.reload() } } // Upload
         .focusedSceneValue(\.gridModel, model)
+        .focusedSceneValue(\.faceNamesAvailable, canShowFaces ? true : nil)
+        .focusedSceneValue(\.photoZoom, viewerItem?.isVideo == false ? PhotoZoomAction(zoom: zoomPhoto) : nil)
+        // The open photo's faces, while its face names are shown.
+        .task(id: canShowFaces && faceNamesShown ? viewerItem?.id : nil) {
+            if canShowFaces && faceNamesShown, let id = viewerItem?.id { await photoFaces.load(id, session: session) }
+        }
+        .modifier(PhotoFacesSheets(faces: photoFaces, assetID: canShowFaces ? viewerItem?.id : nil, showingList: $showingFaceList))
         .focusedSceneValue(\.libraryMode, model.source == .library ? $libraryMode.animation(.smooth(duration: 0.35)) : nil)
         .selectAllTarget(model, enabled: overview == nil)
         .confirmationDialog(deleteTitle, isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
@@ -209,6 +221,11 @@ struct AssetGridHost<Header: View>: View {
         pendingDelete = ids
     }
 
+    /// Face names and Manage Faces, for an open photo, as Photos has them.
+    private var canShowFaces: Bool {
+        viewerItem?.isVideo == false && session.features.facialRecognition && photoFaces.supported
+    }
+
     private var removalTitle: String {
         String(localized: "Remove \(pendingRemoval?.count ?? 0) items from the album?")
     }
@@ -224,6 +241,10 @@ struct AssetGridHost<Header: View>: View {
             Label(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio", systemImage: "rectangle.arrowtriangle.2.inward")
         }
         .help(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio")
+    }
+
+    private func zoomPhoto(_ zoom: PhotoZoomRequest.Zoom) {
+        photoZoom = PhotoZoomRequest(zoom: zoom, generation: (photoZoom?.generation ?? 0) + 1)
     }
 
     private var zoomOutButton: some View {
@@ -249,6 +270,19 @@ struct AssetGridHost<Header: View>: View {
             ToolbarItem(id: "back", placement: .navigation) {
                 Button { model.viewerID = nil } label: { Label("Back", systemImage: "chevron.backward") }
                     .help("Back to grid")
+            }
+            if viewerItem?.isVideo == false {
+                if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
+                ToolbarItem(id: "photoZoomOut") {
+                    Button { zoomPhoto(.zoomOut) } label: { Label("Zoom Out", systemImage: "minus") }
+                }
+                ToolbarItem(id: "photoZoomIn") {
+                    Button { zoomPhoto(.zoomIn) } label: { Label("Zoom In", systemImage: "plus") }
+                }
+                if canShowFaces {
+                    if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
+                    PeopleFaceToolbarItems(showingList: $showingFaceList)
+                }
             }
             if viewerItem?.livePhotoVideoID != nil {
                 ToolbarItem(id: "live") {
