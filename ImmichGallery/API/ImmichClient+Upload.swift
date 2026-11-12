@@ -20,9 +20,10 @@ extension ImmichClient {
         }
     }
 
-    func uploadFile(_ file: URL, checksum: String, legacy: Bool,
+    /// `name` and the dates override the file's own (the File Provider uploads a system copy of the dropped file).
+    func uploadFile(_ file: URL, checksum: String, legacy: Bool, name: String? = nil, created: Date? = nil, modified: Date? = nil,
                     progress: @escaping @Sendable (Int64, Int64) -> Void) async throws -> UploadResponse {
-        let preparation = Task.detached { try UploadMultipart.make(file, legacy: legacy) }
+        let preparation = Task.detached { try UploadMultipart.make(file, legacy: legacy, name: name, created: created, modified: modified) }
         let multipart = try await withTaskCancellationHandler {
             try await preparation.value
         } onCancel: { preparation.cancel() }
@@ -97,7 +98,7 @@ struct UploadMultipart: Sendable {
         return Data(hash.finalize()).base64EncodedString()
     }
 
-    static func make(_ source: URL, legacy: Bool) throws -> UploadMultipart {
+    static func make(_ source: URL, legacy: Bool, name: String? = nil, created: Date? = nil, modified: Date? = nil) throws -> UploadMultipart {
         let boundary = "ImmichGallery-\(UUID().uuidString)"
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ImmichGallery-upload-\(getpid())-\(UUID().uuidString)")
         guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
@@ -108,22 +109,23 @@ struct UploadMultipart: Sendable {
             defer { try? output.close() }
             func write(_ text: String) throws { try output.write(contentsOf: Data(text.utf8)) }
             let dates = try source.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
-            let modified = dates.contentModificationDate ?? dates.creationDate ?? Date()
+            let fileName = name ?? source.lastPathComponent
+            let modified = modified ?? dates.contentModificationDate ?? created ?? dates.creationDate ?? Date()
             let formatter = ISO8601DateFormatter()
-            var fields = ["fileCreatedAt": formatter.string(from: dates.creationDate ?? modified),
+            var fields = ["fileCreatedAt": formatter.string(from: created ?? dates.creationDate ?? modified),
                           "fileModifiedAt": formatter.string(from: modified), "isFavorite": "false"]
             // v2 requires device identifiers; v3 removed them from the upload DTO.
             if legacy {
                 fields["deviceId"] = "ImmichGallery"
-                fields["deviceAssetId"] = "mac-\(source.lastPathComponent)-\(modified.timeIntervalSince1970)"
+                fields["deviceAssetId"] = "mac-\(fileName)-\(modified.timeIntervalSince1970)"
             }
             for (key, value) in fields.sorted(by: { $0.key < $1.key }) {
                 try write("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(key)\"\r\n\r\n\(value)\r\n")
             }
-            let name = source.lastPathComponent.replacingOccurrences(of: "\r", with: "_")
+            let name = fileName.replacingOccurrences(of: "\r", with: "_")
                 .replacingOccurrences(of: "\n", with: "_").replacingOccurrences(of: "\"", with: "_")
                 .replacingOccurrences(of: "\\", with: "_")
-            let mime = UTType(filenameExtension: source.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+            let mime = UTType(filenameExtension: (fileName as NSString).pathExtension)?.preferredMIMEType ?? "application/octet-stream"
             try write("--\(boundary)\r\nContent-Disposition: form-data; name=\"assetData\"; filename=\"\(name)\"\r\nContent-Type: \(mime)\r\n\r\n")
             let input = try FileHandle(forReadingFrom: source)
             defer { try? input.close() }

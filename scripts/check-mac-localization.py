@@ -6,6 +6,7 @@ import itertools
 import json
 import plistlib
 import re
+import sys
 from pathlib import Path
 
 TOKEN = re.compile(r'%(?:(\d+)\$)?(@|lld|llu|ld|lu|d|u|(?:\.\d+)?[fgs])')
@@ -60,22 +61,25 @@ def load_extraction(path):
 
 
 def main():
-    # The widget extension reads only its own catalogs, so its strings must be there. Shared/ is
-    # compiled into the app too; the app never shows those strings, so either catalog covers them.
+    # The widget and File Provider extensions read only their own catalogs, so their strings must be there
+    # (including the shared API files the File Provider compiles). Shared/ is compiled into the app too; the
+    # app never shows those strings, so either catalog covers them.
     def load(folder):
         return {p.stem: json.loads(p.read_text())['strings'] for p in Path(folder).glob('*.xcstrings')}
-    app, widget = load('ImmichGallery'), load('ImmichGalleryWidget')
+    app, widget, provider = load('ImmichGallery'), load('ImmichGalleryWidget'), load('ImmichGalleryFileProvider')
     catalogs = {table: {**app.get(table, {}), **widget.get(table, {})} for table in {*app, *widget}}
     checked = set()
-    for path in Path('build/DerivedData').rglob('*.stringsdata'):
-        own = widget if 'ImmichGalleryWidget.build' in path.parts else catalogs
+    derived = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('build/DerivedData')
+    for path in derived.rglob('*.stringsdata'):
+        own = (widget if 'ImmichGalleryWidget.build' in path.parts
+               else provider if 'ImmichGalleryFileProvider.build' in path.parts else catalogs)
         for table, entries in load_extraction(path).get('tables', {}).items():
             for entry in entries:
                 key = entry['key']
                 assert key in own.get(table, {}), f'Missing catalog key: {table}: {key} ({path.name})'
                 checked.add((table, key))
     assert checked, 'Build first to extract localizable strings'
-    for table, catalog in [*app.items(), *widget.items()]:
+    for table, catalog in [*app.items(), *widget.items(), *provider.items()]:
         for key, entry in catalog.items():
             localizations = entry.get('localizations', {})
             assert 'it' in localizations, f'Missing Italian translation: {table}: {key}'
@@ -83,7 +87,7 @@ def main():
                 assert 'en' in localizations, f'Missing English count forms: {key}'
             for localization in localizations.values():
                 check(key, localization)
-    print(f'Checked {len(checked)} extracted keys and {sum(map(len, [*app.values(), *widget.values()]))} catalog keys: '
+    print(f'Checked {len(checked)} extracted keys and {sum(map(len, [*app.values(), *widget.values(), *provider.values()]))} catalog keys: '
           'Italian coverage, placeholders, and count plurals passed.')
 
 

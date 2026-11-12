@@ -57,6 +57,8 @@ final class AppModel {
                     try LockedFolderTouchID.forget(server: selected.account.serverURL, userID: selected.userID)
                     try AccountVault.remove(selected.id)
                     try removeSavedCache(selected)
+                    // Finder access: the account's location goes too. Its key can't be deleted with a refused login.
+                    await FinderAccessModel.shared.accountRemoved(apiURL: selected.account.apiURL, userID: selected.userID, credential: nil)
                 }
                 try refreshEntries()
                 UserDefaults.standard.set(true, forKey: "accountVaultMigrated")
@@ -93,10 +95,12 @@ final class AppModel {
         guard !switching, let services else { return }
         switching = true
         defer { switching = false }
+        var userIDForFinder: String?
         do {
             // Persist removal first: a vault failure must leave the live login intact. The kept Locked Folder PIN
             // goes before the vault entry, so it can't outlive the account.
             let userID = services.user?.id ?? entries.first { $0.id == currentAccountID }?.userID
+            userIDForFinder = userID
             try LockedFolderTouchID.forget(server: services.client.serverURL, userID: userID)
             if let currentAccountID { try AccountVault.remove(currentAccountID) }
             else { _ = try AccountVault.loadEntries() }
@@ -107,6 +111,11 @@ final class AppModel {
         endSession(services)
         phase = .signedOut
         currentAccountID = nil
+        // Finder access: remove the account's location and its server key while the login still works.
+        if let userID = services.user?.id ?? userIDForFinder {
+            await FinderAccessModel.shared.accountRemoved(apiURL: services.client.apiURL, userID: userID, credential: services.client.credential)
+            if let error = FinderAccessModel.shared.error { accountError = error }
+        }
         if case .accessToken = services.client.credential { try? await services.client.logout() }
         do { try clearCache(services) } catch { accountError = error.localizedDescription }
     }
@@ -131,6 +140,8 @@ final class AppModel {
         try LockedFolderTouchID.forget(server: entry.account.serverURL, userID: entry.userID)
         try AccountVault.remove(entry.id)
         try refreshEntries()
+        // Finder access: the account's location and its server key go too.
+        Task { await FinderAccessModel.shared.accountRemoved(apiURL: entry.account.apiURL, userID: entry.userID, credential: entry.account.credential) }
         if currentAccountID == entry.id {
             let old = services
             if let old { endSession(old) }
@@ -196,6 +207,7 @@ final class AppModel {
         MacQuickLook.shared.dismiss()
         phase = .signedIn(services)
         services.bootstrapTask = Task { await services.bootstrap() }
+        FinderAccessModel.shared.start() // Finder access: keeps enabled locations current while the app runs.
     }
 }
 
@@ -299,6 +311,19 @@ final class AccountServices {
         await loadExploreTags()
     }
 
+    /// Preference reads and saves run one after another, so the server ends with the last change and reopening
+    /// Settings never reads it before an earlier save has landed.
+    @ObservationIgnored private var preferencesQueue: Task<Void, Never>?
+    /// Why the last preferences save failed, kept until Settings shows it (a save made as Settings closed).
+    var preferencesSaveError: String?
+
+    func queuePreferences<T: Sendable>(_ work: @escaping @MainActor () async throws -> T) async throws -> T {
+        let previous = preferencesQueue
+        let task = Task { await previous?.value; return try await work() }
+        preferencesQueue = Task { _ = await task.result }
+        return try await task.value
+    }
+
     var preferencesRevision = 0
     func setPreferences(_ value: AccountPreferences) {
         preferences = value
@@ -340,6 +365,7 @@ final class AccountServices {
 
     func invalidateGrids() {
         for window in windows.allObjects { window.invalidateMacWindowGrids() }
+        FinderAccessModel.shared.signalSoon() // Finder access
     }
 
     var hiddenAssetIDs: Set<String> = []
@@ -348,6 +374,7 @@ final class AccountServices {
         hiddenAssetIDs.formUnion(ids)
         for window in windows.allObjects { window.removeFromGrids(ids) }
         MacQuickLook.shared.dismiss()
+        FinderAccessModel.shared.signalSoon() // Finder access
     }
 
     func handle(_ error: Error) {
@@ -414,6 +441,7 @@ final class LibrarySession {
     }
 
     func invalidateAlbumGrid(_ id: String) {
+        FinderAccessModel.shared.signalSoon() // Finder access
         for window in services.windows.allObjects {
             window.gridModels[.album(id)]?.markStale()
             window.albumActions.revisions[id, default: 0] += 1
@@ -437,6 +465,7 @@ final class LibrarySession {
         for model in gridModels.values where model !== keep { model.markStale() }
         macGridRevision += 1
         for window in services.windows.allObjects where window !== self { window.invalidateMacWindowGrids() }
+        FinderAccessModel.shared.signalSoon() // Finder access
     }
 
     func setLocationInGrids(_ ids: [String], latitude: Double, longitude: Double) {

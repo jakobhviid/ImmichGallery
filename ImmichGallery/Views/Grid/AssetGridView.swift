@@ -412,6 +412,8 @@ struct AssetGridView: View {
     var onRemove: ([String]) -> Void = { _ in }
     /// Above the photos, scrolling with them.
     var scrollHeader: AnyView?
+    /// A quieter message for a page whose header already holds what there is, such as a folder of subfolders.
+    @Environment(\.gridEmptyNote) private var emptyNote
 
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @State private var zoomBase: Double?
@@ -422,13 +424,35 @@ struct AssetGridView: View {
     @State private var shownSize = UserDefaults.standard.object(forKey: "gridThumbnailSize") as? Double ?? GridMetrics.defaultSize
     @State private var shownFit = UserDefaults.standard.bool(forKey: GridMetrics.aspectRatioKey)
     @State private var visibleCells = VisibleCells()
+    @State private var emptyHeaderHeight: CGFloat = 0
 
     var body: some View {
         Group {
             // Months a filter emptied still count as empty (Assign Location).
             if model.sections.allSatisfy({ model.shownCount($0) == 0 }) {
-                VStack(spacing: 0) {
-                if let scrollHeader { scrollHeader }
+                if let scrollHeader {
+                    // The header stays at the top and scrolls when it is taller than the window (a folder with many
+                    // subfolders); the message fills the space left below it.
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            scrollHeader
+                                .onScrollVisibilityChange(threshold: 0.25) { model.headerInView = $0 }
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { emptyHeaderHeight = $0 }
+                            emptyContent.containerRelativeFrame(.vertical) { height, _ in max(160, height - emptyHeaderHeight) }
+                        }
+                    }
+                } else {
+                    emptyContent
+                }
+            } else {
+                grid
+            }
+        }
+    }
+
+    /// Loading, a failure or why there are no photos, filling the space it is given.
+    private var emptyContent: some View {
+        Group {
                 switch model.state {
                 case .idle, .loading:
                     VStack(spacing: 12) {
@@ -481,14 +505,20 @@ struct AssetGridView: View {
                         emptyState
                     }
                 }
-                }
-            } else {
-                grid
-            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if let note = emptyNote {
+            Text(note).foregroundStyle(.secondary).padding()
+        } else {
+            defaultEmptyState
         }
     }
 
-    private var emptyState: some View {
+    private var defaultEmptyState: some View {
         let (title, symbol): (LocalizedStringKey, String) = switch model.source {
         case .favorites: ("No Favorites", "heart")
         case .videos: ("No Videos", "video")

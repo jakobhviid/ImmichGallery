@@ -18,7 +18,7 @@ cases = {
     'password-banner': api + ['Tests/PasswordBannerChecks.swift'],
     'metadata-state': models + ['ImmichGallery/API/Models+Metadata.swift', app('MetadataState'), 'scripts/verify-metadata-state.swift'],
     'admin-refresh': models + ['ImmichGallery/API/Models+Admin.swift', 'ImmichGallery/API/ImmichClient+Admin.swift', app('AdminModel'), 'scripts/check-admin-refresh.swift'],
-    'paging-and-services': api + [app(s) for s in ['AppModel', 'AssetGridModel', 'GridArrangement', 'AlbumsActions', 'LockedFolderMedia', 'LockedFolderTouchID', 'MetadataState', 'SharingModel', 'UploadQueue']] + [support('ImagePipeline'), support('Formatters'), 'scripts/check-search-paging.swift'],
+    'paging-and-services': api + [app(s) for s in ['AppModel', 'AssetGridModel', 'GridArrangement', 'AlbumsActions', 'LockedFolderMedia', 'LockedFolderTouchID', 'MetadataState', 'SharingModel', 'UploadQueue', 'FinderAccessModel']] + [support('ImagePipeline'), support('Formatters'), 'FileProviderShared/FinderAccessShared.swift', 'scripts/check-search-paging.swift'],
     'sharing': api + [app('SharingModel'), 'scripts/checks/SharingModelCheck.swift'],
     'upload': api + [app('UploadQueue'), 'scripts/verify-upload.swift'],
     'map-annotation': api + [support('ImagePipeline'), app('ExploreClustering'), 'ImmichGallery/Views/Albums/RemoteThumbnail.swift', 'ImmichGallery/Views/Explore/ExploreMapAnnotation.swift', 'Tests/MapAnnotationChecks.swift'],
@@ -48,6 +48,17 @@ cases = {
     'people-arrangement': models + [app('PeopleArrangement'), 'Tests/PeopleArrangementChecks.swift'],
     'duplicates-arrangement': models + [app('DuplicatesArrangement'), 'Tests/DuplicatesArrangementChecks.swift'],
     'crosslink': [app('Crosslink'), 'Tests/CrosslinkChecks.swift'],
+    # Finder access: the File Provider's model, replica, engine and requests, with the API files its target shares.
+    'file-provider': [f'ImmichGallery/API/{s}.swift' for s in ['ImmichClient', 'Models', 'Models+Albums', 'Models+Assets', 'Models+Upload',
+                                                               'ImmichClient+Albums', 'ImmichClient+Upload']]
+                     + sorted(str(p.relative_to(repo)) for p in (repo / 'ImmichGalleryFileProvider/Core').glob('*.swift'))
+                     + ['FileProviderShared/FinderAccessShared.swift', 'Tests/FileProviderChecks.swift'],
+    # The extension's framework-facing parts: its XPC listener over real XPC, SDK-built errors, capability bits.
+    'file-provider-framework': [f'ImmichGallery/API/{s}.swift' for s in ['ImmichClient', 'Models', 'Models+Albums', 'Models+Assets', 'Models+Upload',
+                                                                         'ImmichClient+Albums', 'ImmichClient+Upload']]
+                               + sorted(str(p.relative_to(repo)) for p in (repo / 'ImmichGalleryFileProvider/Core').glob('*.swift'))
+                               + [f'ImmichGalleryFileProvider/{name}.swift' for name in ['FinderAccessListener', 'FileProviderErrors', 'FileProviderItem']]
+                               + ['FileProviderShared/FinderAccessShared.swift', 'Tests/FileProviderFrameworkChecks.swift'],
     'crosslink-navigation': [app('Crosslink'), app('CrosslinkNavigation'), 'Tests/CrosslinkNavigationChecks.swift'],
     'similar-photos': api + [app('SimilarPhotos'), app('SimilarPhotosAnalyzer'), app('SimilarPhotosModel'), app('AssetsStackMutation'), support('ImagePipeline'), support('Formatters'), 'Tests/SimilarPhotosChecks.swift'],
     'crosslink-page-navigation': [app('Crosslink'), app('CrosslinkNavigation'), 'ImmichGallery/Views/PageNavigation.swift', 'ImmichGallery/Views/PageNavigation+Crosslink.swift', 'Tests/CrosslinkPageNavigationChecks.swift'],

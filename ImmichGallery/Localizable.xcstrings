@@ -6913,16 +6913,6 @@
         }
       }
     },
-    "Preferences saved.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preferenze salvate."
-          }
-        }
-      }
-    },
     "Preparing": {
       "localizations": {
         "it": {
@@ -7475,16 +7465,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salva nome"
-          }
-        }
-      }
-    },
-    "Save Preferences": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Salva preferenze"
           }
         }
       }
@@ -8925,16 +8905,6 @@
         }
       }
     },
-    "These preferences are stored on your Immich server. Web sidebar options affect the web client.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Queste preferenze vengono salvate sul tuo server Immich. Le opzioni della barra laterale web si applicano al client web."
-          }
-        }
-      }
-    },
     "This account is no longer saved.": {
       "localizations": {
         "it": {
@@ -9881,16 +9851,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Le voci tornano nelle sezioni predefinite. Foto e album non vengono eliminati."
-          }
-        }
-      }
-    },
-    "Back to Photo": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Torna alla foto"
           }
         }
       }
@@ -11603,6 +11563,286 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il portachiavi non ha accettato l'operazione sul PIN della cartella bloccata per Touch ID (%@)."
+          }
+        }
+      }
+    },
+    "Allow Changes": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti modifiche"
+          }
+        }
+      }
+    },
+    "Allow Removing": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti rimozione"
+          }
+        }
+      }
+    },
+    "Check every folder in Finder against the server again": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confronta di nuovo ogni cartella nel Finder con il server"
+          }
+        }
+      }
+    },
+    "Deleting a photo in an album folder removes it from the album; in Favorites, unfavorites it; in Library, moves it to Immich's Trash. Deleting an album folder deletes the album, and its photos stay in your library. Dragging a photo between albums moves it.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminare una foto in una cartella album la rimuove dall'album; in Preferiti, la toglie dai preferiti; in Libreria, la sposta in Eliminati di recente di Immich. Eliminare la cartella di un album elimina l'album, e le sue foto restano nella libreria. Trascinare una foto da un album all'altro la sposta."
+          }
+        }
+      }
+    },
+    "Drop photos and videos into Albums, Library or Favorites to upload them. A new folder in Albums makes an album, renaming a folder renames your album, and dragging a photo onto an album or Favorites adds it there.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina foto e video in Album, Libreria o Preferiti per caricarli. Una nuova cartella in Album crea un album, rinominare una cartella rinomina il tuo album, e trascinare una foto su un album o su Preferiti ve la aggiunge."
+          }
+        }
+      }
+    },
+    "Finder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder"
+          }
+        }
+      }
+    },
+    "Finder access needs a copy of Immich Gallery signed with its App Group.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'accesso dal Finder richiede una copia di Immich Gallery firmata con il suo App Group."
+          }
+        }
+      }
+    },
+    "Finder didn't respond. Try again in a moment.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il Finder non ha risposto. Riprova tra un momento."
+          }
+        }
+      }
+    },
+    "Finder uses this account's API key. It never opens the Locked Folder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il Finder usa la chiave API di questo account. Non apre mai la cartella bloccata."
+          }
+        }
+      }
+    },
+    "Items added in Finder that weren't uploaded yet were kept in %@.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli elementi aggiunti nel Finder non ancora caricati sono stati conservati in %@."
+          }
+        }
+      }
+    },
+    "Locations Without a Saved Account": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posizioni senza un account salvato"
+          }
+        }
+      }
+    },
+    "Make a new Finder key, for example after deleting it on the server": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea una nuova chiave per il Finder, per esempio dopo averla eliminata sul server"
+          }
+        }
+      }
+    },
+    "Reconnect": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riconnetti"
+          }
+        }
+      }
+    },
+    "Remove from Finder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi dal Finder"
+          }
+        }
+      }
+    },
+    "Remove this account from Finder?": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovere questo account dal Finder?"
+          }
+        }
+      }
+    },
+    "Removing a location deletes its downloaded files from this Mac. Its key can then only be deleted in Account Settings ▸ API Keys on the server.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovere una posizione elimina da questo Mac i file scaricati. La sua chiave si potrà poi eliminare solo in Impostazioni account ▸ Chiavi API sul server."
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra nel Finder"
+          }
+        }
+      }
+    },
+    "Show your Immich library in the Finder sidebar, with folders for Albums, Library (by year and month) and Favorites. Photos download only when you open them.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la tua libreria Immich nella barra laterale del Finder, con cartelle per Album, Libreria (per anno e mese) e Preferiti. Le foto vengono scaricate solo quando le apri."
+          }
+        }
+      }
+    },
+    "Sign in to show an account in Finder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi per mostrare un account nel Finder."
+          }
+        }
+      }
+    },
+    "The Finder key couldn't be deleted from the server.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile eliminare dal server la chiave del Finder."
+          }
+        }
+      }
+    },
+    "The Finder key couldn't be deleted from the server. You can delete “%@” in Account Settings ▸ API Keys.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile eliminare dal server la chiave del Finder. Puoi eliminare “%@” in Impostazioni account ▸ Chiavi API."
+          }
+        }
+      }
+    },
+    "The location and the photos downloaded from it are removed from this Mac. Nothing is deleted from Immich.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La posizione e le foto scaricate da essa vengono rimosse da questo Mac. Niente viene eliminato da Immich."
+          }
+        }
+      }
+    },
+    "The server answered for another account. Finder access wasn't turned on.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il server ha risposto per un altro account. L'accesso dal Finder non è stato attivato."
+          }
+        }
+      }
+    },
+    "Turning this on creates an API key named “%@” on your server, used only by Finder. It can't open the Locked Folder. Turning it off deletes the key, the location and its downloaded files.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivandolo viene creata sul tuo server una chiave API chiamata “%@”, usata solo dal Finder. Non può aprire la cartella bloccata. Disattivandolo vengono eliminati la chiave, la posizione e i file scaricati."
+          }
+        }
+      }
+    },
+    "This server didn't accept a key limited to what Finder access needs, so no key was made. Update Immich, or sign in to this account with an API key you created to let Finder use that key.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo server non ha accettato una chiave limitata a ciò che serve all'accesso dal Finder, quindi non è stata creata nessuna chiave. Aggiorna Immich, oppure accedi a questo account con una chiave API creata da te per farla usare al Finder."
+          }
+        }
+      }
+    },
+    "No photos directly in this folder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto direttamente in questa cartella"
+          }
+        }
+      }
+    },
+    "Changes are saved on your Immich server as you make them. Web sidebar options affect the web client.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modifiche vengono salvate sul tuo server Immich man mano che le fai. Le opzioni della barra laterale web si applicano al client web."
+          }
+        }
+      }
+    },
+    "Couldn't Save Preferences": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile salvare le preferenze"
           }
         }
       }

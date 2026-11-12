@@ -172,6 +172,11 @@ struct SidebarActions {
     var editing: Binding<Bool>
 }
 
+extension EnvironmentValues {
+    /// Replaces a grid's empty-page message with a quieter note (a folder that holds only subfolders).
+    @Entry var gridEmptyNote: LocalizedStringKey?
+}
+
 extension FocusedValues {
     @Entry var searchActions: SearchActions?
     @Entry var sidebarActions: SidebarActions?

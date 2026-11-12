@@ -110,6 +110,7 @@ The demo is shared with everyone and doesn't accept uploads.
 | Shortcuts actions and the macOS share sheet                      | ✅ |
 | Show in other Immich apps ([Immich Crosslink](https://jakob.hviid.phd/immich-crosslink/)), Open in Immich, Copy Immich Link | ✅ |
 | Desktop widgets: photos (featured, album, person, place, favorites, chosen), mosaic, library | ✅ |
+| Optional Finder location per account: albums, library by month and favorites, downloaded on open; drop files to upload | ✅ |
 | In-app updates, optionally automatic                             | ✅ |
 | English and Italian                                              | ✅ |
 | OAuth (OIDC) sign-in                                             | ✅ |
@@ -180,7 +181,7 @@ app or for one.
 
 ## Privacy
 
-Immich Gallery talks only to the servers you sign in to. There is no analytics, no tracking and no third-party service. Credentials are stored in the macOS Keychain, and thumbnails are cached on disk separately for each account.
+Immich Gallery talks only to the servers you sign in to. There is no analytics, no tracking and no third-party service. Credentials are stored in the macOS Keychain, and thumbnails are cached on disk separately for each account. Showing an account in Finder (Settings ▸ Finder, off by default) creates an API key on your server used only by Finder, which can't open the Locked Folder; turning it off deletes it. See [docs/FileProvider.md](docs/FileProvider.md).
 
 ## Build from source
 
@@ -214,6 +215,8 @@ ImmichGallery/
   Views/      One folder per feature: Login, Grid, Viewer, Inspector, Albums, People, Search, Explore,
               Sharing, Upload, Metadata, Assets, Account, Admin, MacIntegration, Settings
   Localizable.xcstrings   English and Italian strings
+ImmichGalleryFileProvider/   Finder access: the File Provider extension (Core/ is its model, replica and engine)
+FileProviderShared/          What the app and the File Provider share: domain IDs, settings, the XPC protocol
 Config/       Info.plist (ATS for http LAN servers), entitlements (sandbox)
 docs/         Notes on each feature area and on the multi-window architecture
 scripts/      Offline checks and the release script

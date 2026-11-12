@@ -4,7 +4,6 @@ import SwiftUI
 struct AssetInspector: View {
     @Environment(LibrarySession.self) private var session
     let assetID: String?
-    var scrollable = true
 
     @State private var state = AssetInspectorState()
     @State private var attempt = 0 // Retry
@@ -30,13 +29,7 @@ struct AssetInspector: View {
                     // of a spinner flashing at every step through the photos. Its editing controls go: they would
                     // write to the photo no longer selected.
                     let editable = state.canEdit(assetID)
-                    Group {
-                        if scrollable {
-                            ScrollView { details(asset, editable: editable) }
-                        } else {
-                            details(asset, editable: editable)
-                        }
-                    }
+                    ScrollView { details(asset, editable: editable) }
                     .opacity(editable ? 1 : 0.5)
                     .allowsHitTesting(editable)
                     .accessibilityHidden(!editable)

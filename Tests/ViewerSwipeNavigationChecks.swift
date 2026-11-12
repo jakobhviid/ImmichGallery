@@ -101,16 +101,16 @@ import AppKit
         precondition(view.handleScroll(stray) === stray && steps.count == 3, "Momentum alone must not navigate")
         precondition(view.handleScroll(event(window, -80, 0, momentum: .ended)) != nil)
 
-        // Vertical scrolling at fit passes to the inline details.
+        // Vertical scrolling at fit passes through without navigating.
         let verticalStart = event(window, 1, -6, phase: .began)
         precondition(view.handleScroll(verticalStart) === verticalStart)
         let vertical = event(window, -2, -20, phase: .changed)
-        precondition(view.handleScroll(vertical) === vertical, "Vertical scrolling reaches photo details")
+        precondition(view.handleScroll(vertical) === vertical, "Vertical scrolling passes through")
         let lateHorizontal = event(window, -80, 0, phase: .changed)
-        precondition(view.handleScroll(lateHorizontal) === lateHorizontal, "Once vertical, the gesture stays with details")
+        precondition(view.handleScroll(lateHorizontal) === lateHorizontal, "Once vertical, the gesture remains vertical")
         precondition(view.handleScroll(event(window, 0, 0, phase: .ended)) != nil)
         let verticalMomentum = event(window, 0, -40, momentum: .began)
-        precondition(view.handleScroll(verticalMomentum) === verticalMomentum, "Vertical momentum keeps scrolling details")
+        precondition(view.handleScroll(verticalMomentum) === verticalMomentum, "Vertical momentum passes through")
         _ = view.handleScroll(event(window, 0, 0, momentum: .ended))
         swipe(view, window, steps: [(-30, -25), (-30, -25)])
         precondition(steps.count == 3, "Diagonal swipes are not navigation")

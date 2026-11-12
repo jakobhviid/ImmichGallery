@@ -101,6 +101,7 @@ struct AccountSettingsTabs: View {
                     .tabItem { Label("Preferences", systemImage: "switch.2") }.tag("preferences")
             }
             AccountSwitcherView().tabItem { Label("Accounts", systemImage: "person.2") }.tag("accounts")
+            FinderAccessSettingsView().tabItem { Label("Finder", systemImage: "folder") }.tag("finder") // Finder access
             CrosslinkSettingsView().tabItem { Label("Other Apps", systemImage: "link") }.tag("crosslink") // Crosslink
             UpdateSettingsView().tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }.tag("updates")
         }
@@ -108,7 +109,7 @@ struct AccountSettingsTabs: View {
         // The window changes height with the tab, as the system's settings windows do.
         .animation(.smooth(duration: 0.25), value: tab)
         .onChange(of: app.services == nil, initial: true) { _, signedOut in
-            if signedOut, !["general", "accounts", "updates", "crosslink"].contains(tab) { tab = "general" }
+            if signedOut, !["general", "accounts", "updates", "crosslink", "finder"].contains(tab) { tab = "general" }
         }
     }
 }

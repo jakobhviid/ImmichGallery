@@ -14,7 +14,9 @@ For issue #7, the updated isolated Dev app was built, installed and launched. Re
 
 Neighbour preview prefetching uses the slideshow sequence for selection/shuffle and the grid order otherwise, through the existing pipeline. Face overlays belong to the People feature. Optional filmstrips were omitted.
 
-The inline viewer scrolls vertically to show the photo’s existing Info details underneath, including location, people, albums and camera metadata when available. The Info button scrolls to the details, and Back to Photo returns to the image. Each newly opened asset starts at the photo. Scrolling is disabled while the image is zoomed so panning remains available. The sidebar inspector keeps its own scrolling; full-screen viewing and slideshows keep their existing layout. Text editing in the embedded details does not trigger viewer keyboard shortcuts.
+The inline viewer dedicates its viewport to the photo or video. The toolbar's Info button, Command-I and the photo context menu open the existing side inspector with location, people, albums and camera metadata. Details are no longer duplicated below the image, and there is no Info overlay on the photo. The inspector scrolls independently and follows the displayed asset while navigating. Full-screen viewing and slideshows keep their existing layout. Text editing in the inspector does not trigger viewer keyboard shortcuts.
+
+For the Info-inspector update in 0.7.1, all 39 offline integration checks, the viewer-state checks and localization checks passed. The isolated Dev app was built, installed and launched. Read-only demo UI checks confirmed the toolbar Info button opens the inspector, its details follow the next photo, Command-I closes it, and scrolling the photo no longer reveals embedded details. No server mutations were performed. Physical trackpad gestures and macOS 15 runtime behavior were not retested.
 
 ## HDR photos
 

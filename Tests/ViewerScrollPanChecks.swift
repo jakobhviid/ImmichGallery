@@ -21,7 +21,7 @@ import AppKit
         event.targetWindow = window
         var deltas: [CGSize] = []
         view.onScroll = { deltas.append($0) }
-        precondition(view.handleScroll(event) === event, "At 1×, scrolling must reach photo details")
+        precondition(view.handleScroll(event) === event, "At 1×, scrolling must pass through")
         view.isEnabled = true
         precondition(view.handleScroll(event) == nil, "Zoomed photo must consume scrolling")
         precondition(deltas == [CGSize(width: 12.5, height: -24)], "Preserve both native scroll axes and direction")

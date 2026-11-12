@@ -29,7 +29,8 @@ def run(*args, **kwargs):
 
 def fingerprint():
     digest = hashlib.sha256()
-    for folder in ['ImmichGallery', 'ImmichGalleryWidget', 'Shared', 'Config', 'ImmichGallery.xcodeproj']:
+    for folder in ['ImmichGallery', 'ImmichGalleryWidget', 'ImmichGalleryFileProvider', 'FileProviderShared', 'Shared', 'Config',
+                   'ImmichGallery.xcodeproj']:
         for path in sorted((ROOT / folder).rglob('*')):
             if not path.is_file() or any(part in {'xcuserdata', 'project.xcworkspace'} for part in path.parts):
                 continue
@@ -51,6 +52,22 @@ def development_pids():
     output = run('ps', '-axo', 'pid=,comm=', capture_output=True, text=True).stdout
     return [int(line.strip().split(None, 1)[0]) for line in output.splitlines()
             if len(line.strip().split(None, 1)) == 2 and line.strip().split(None, 1)[1] in executables]
+
+
+def check_file_provider(app, info):
+    # Finder access: Dev's extension, App Group and credential owner are Dev's own, never the public app's.
+    provider = app / 'Contents/PlugIns/ImmichGalleryFileProvider.appex'
+    extension = bundle_info(provider)
+    assert extension['CFBundleIdentifier'] == info['CFBundleIdentifier'] + '.FileProvider'
+    assert extension['ImmichAppBundleIdentifier'] == info['CFBundleIdentifier']
+    assert extension['ImmichAppGroup'] == info['ImmichAppGroup']
+    assert extension['NSExtension']['NSExtensionPointIdentifier'] == 'com.apple.fileprovider-nonui'
+    assert extension['NSExtension']['NSExtensionFileProviderDocumentGroup'] == info['ImmichAppGroup']
+    # The app reaches plain-HTTP servers (LAN, VPN); the extension must reach the same ones.
+    assert extension.get('NSAppTransportSecurity') == info.get('NSAppTransportSecurity'), 'File Provider ATS must match the app'
+    entitlements = run('codesign', '-d', '--entitlements', ':-', provider, capture_output=True).stdout
+    groups = plistlib.loads(entitlements)['com.apple.security.application-groups'] if entitlements else []
+    assert groups == [info['ImmichAppGroup']], groups
 
 
 def update(open_app=True, force=True):
@@ -83,6 +100,7 @@ def update(open_app=True, force=True):
         assert info['ImmichAppGroup'].endswith('.ImmichGallery.Dev')
         widget = PRODUCT / 'Contents/PlugIns/ImmichGalleryWidget.appex'
         assert bundle_info(widget)['CFBundleIdentifier'] == BUNDLE_ID + '.Widget'
+        check_file_provider(PRODUCT, info)
         run('codesign', '--verify', '--deep', '--strict', PRODUCT)
         if DESTINATION.exists() and bundle_info(DESTINATION)['CFBundleIdentifier'] != BUNDLE_ID:
             raise RuntimeError('Refusing to replace an application without the Dev bundle identifier.')

@@ -1,0 +1,336 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld items could not be added: %@.": {
+      "localizations": {
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile aggiungere %lld elemento: %@."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile aggiungere %lld elementi: %@."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item could not be added: %@."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items could not be added: %@."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items could not be removed: %@.": {
+      "localizations": {
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile rimuovere %lld elemento: %@."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile rimuovere %lld elementi: %@."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item could not be removed: %@."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items could not be removed: %@."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Albums": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album"
+          }
+        }
+      }
+    },
+    "Changes from Finder are turned off for this account in Immich Gallery Settings.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modifiche dal Finder sono disattivate per questo account nelle impostazioni di Immich Gallery."
+          }
+        }
+      }
+    },
+    "Could not add the imported item to the album.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aggiungere l'elemento importato all'album."
+          }
+        }
+      }
+    },
+    "Couldn't reach an Immich server at that address. %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raggiungere un server Immich a questo indirizzo. %@"
+          }
+        }
+      }
+    },
+    "Favorites": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferiti"
+          }
+        }
+      }
+    },
+    "Finder access can't reach Immich Gallery's shared folder. Reinstall Immich Gallery.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'accesso dal Finder non raggiunge la cartella condivisa di Immich Gallery. Reinstalla Immich Gallery."
+          }
+        }
+      }
+    },
+    "Immich doesn't accept this kind of file.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immich non accetta questo tipo di file."
+          }
+        }
+      }
+    },
+    "Items can't be added to this folder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non si possono aggiungere elementi a questa cartella."
+          }
+        }
+      }
+    },
+    "Library": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libreria"
+          }
+        }
+      }
+    },
+    "New folders can only be made in Albums, where each folder is an album.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nuove cartelle si possono creare solo in Album, dove ogni cartella è un album."
+          }
+        }
+      }
+    },
+    "Only the photo's owner can do this.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo il proprietario della foto può farlo."
+          }
+        }
+      }
+    },
+    "Open Immich Gallery and turn on Finder access again in Settings ▸ Finder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Immich Gallery e riattiva l'accesso dal Finder in Impostazioni ▸ Finder."
+          }
+        }
+      }
+    },
+    "Photos in Immich can't be replaced. Add the edited file as a new item instead.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto in Immich non si possono sostituire. Aggiungi invece il file modificato come nuovo elemento."
+          }
+        }
+      }
+    },
+    "Removing from Finder is turned off for this account in Immich Gallery Settings.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La rimozione dal Finder è disattivata per questo account nelle impostazioni di Immich Gallery."
+          }
+        }
+      }
+    },
+    "That doesn't look like a valid server address.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'indirizzo del server non sembra valido."
+          }
+        }
+      }
+    },
+    "The server answered, but it isn't Immich.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il server ha risposto, ma non è un server Immich."
+          }
+        }
+      }
+    },
+    "The server returned an error (%lld).": {
+      "localizations": {
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Il server ha restituito un errore (%lld)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Il server ha restituito un errore (%lld)."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The server returned an error (%lld)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The server returned an error (%lld)."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "This item is already in Immich but can't be shown here.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo elemento è già in Immich ma non può essere mostrato qui."
+          }
+        }
+      }
+    },
+    "This photo is already in Immich's Archive, so it isn't shown in Library or Favorites.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa foto è già nell'Archivio di Immich, quindi non compare in Libreria né in Preferiti."
+          }
+        }
+      }
+    },
+    "This server's Trash is turned off, so photos can't be removed from Finder: Immich would delete them for good.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminati di recente è disattivato su questo server, quindi le foto non si possono rimuovere dal Finder: Immich le eliminerebbe definitivamente."
+          }
+        }
+      }
+    },
+    "You can't add to or remove from this album.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non puoi aggiungere o rimuovere elementi da questo album."
+          }
+        }
+      }
+    },
+    "Your session has expired or the credentials are wrong.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sessione è scaduta o le credenziali non sono corrette."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

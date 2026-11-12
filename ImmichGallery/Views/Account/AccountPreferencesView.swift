@@ -5,6 +5,9 @@ struct AccountPreferencesView: View {
     @State private var draft = AccountPreferences()
     @State private var operation = AccountOperation()
     @State private var loaded = false
+    /// What the server last returned: saving sends what the draft changes from it.
+    @State private var saved: AccountPreferences?
+    @State private var pendingSave: Task<Void, Never>?
 
     var body: some View {
         Form {
@@ -39,7 +42,12 @@ struct AccountPreferencesView: View {
                     Section("Downloads") {
                         TextField("Archive Size (GiB)", value: Binding(
                             get: { Double(draft.download?.archiveSize ?? 4_294_967_296) / 1_073_741_824 },
-                            set: { if $0.isFinite { draft.download?.archiveSize = Int64(min(max($0, 0.01), 8192) * 1_073_741_824) } }), format: .number)
+                            set: { value in
+                                // Leaving the field commits the rounded number it shows; that isn't a change.
+                                let current = Double(draft.download?.archiveSize ?? 4_294_967_296) / 1_073_741_824
+                                guard value.isFinite, abs(value - current) > 0.001 else { return }
+                                draft.download?.archiveSize = Int64(min(max(value, 0.01), 8192) * 1_073_741_824)
+                            }), format: .number)
                         if draft.download?.includeEmbeddedVideos != nil {
                             Toggle("Include Embedded Videos", isOn: Binding(get: { draft.download?.includeEmbeddedVideos ?? false }, set: { draft.download?.includeEmbeddedVideos = $0 }))
                         }
@@ -61,23 +69,71 @@ struct AccountPreferencesView: View {
                 if draft.purchase?.showSupportBadge != nil {
                     Toggle("Show Support Badge", isOn: Binding(get: { draft.purchase?.showSupportBadge ?? false }, set: { draft.purchase?.showSupportBadge = $0 }))
                 }
-                Button("Save Preferences") {
-                    operation.run {
-                        session.setPreferences(try await session.client.updateAccountPreferences(draft))
-                        draft = session.preferences ?? draft
-                        operation.message = String(localized: "Preferences saved.")
-                    }
-                }
-                Text("These preferences are stored on your Immich server. Web sidebar options affect the web client.").font(.caption).foregroundStyle(.secondary)
+                Text("Changes are saved on your Immich server as you make them. Web sidebar options affect the web client.").font(.caption).foregroundStyle(.secondary)
             }
             AccountOperationStatus(operation: operation)
         }
         .formStyle(.grouped).disabled(operation.busy)
+        // As in System Settings, a change applies as it is made: a switch or stepper after a brief pause, the
+        // archive size once the field is left, and anything still pending when Settings closes.
+        .onChange(of: draft) {
+            if loaded { scheduleSave() }
+        }
+        .onDisappear {
+            pendingSave?.cancel()
+            if loaded { save(draft) }
+        }
+        // A failure from anywhere in this long form, or from a save made as Settings closed, is told where it is
+        // seen rather than at the bottom of the form.
+        .alert("Couldn't Save Preferences", isPresented: Binding(
+            get: { loaded && session.preferencesSaveError != nil }, set: { if !$0 { session.preferencesSaveError = nil } })) {
+            Button("OK") { session.preferencesSaveError = nil }
+        } message: {
+            Text(session.preferencesSaveError ?? "")
+        }
         .task {
             operation.run(probe: true) {
-                draft = try await session.client.accountPreferences()
-                session.setPreferences(draft)
+                // Waits for a save made as Settings last closed, so this reads what it stored.
+                let preferences = try await session.queuePreferences { try await session.client.accountPreferences() }
+                saved = preferences
+                draft = preferences
+                session.setPreferences(preferences)
                 loaded = true
+            }
+        }
+    }
+
+    private func scheduleSave() {
+        pendingSave?.cancel()
+        pendingSave = Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            save(draft)
+        }
+    }
+
+    /// Saves queue behind earlier ones and send only what `value` changes from what the server last returned, so
+    /// switching something back while a save is in flight is saved too. A failed save puts back the server's
+    /// values and says why.
+    private func save(_ value: AccountPreferences) {
+        let session = session
+        Task {
+            do {
+                let stored = try await session.queuePreferences { () async throws -> AccountPreferences? in
+                    guard let base = saved else { return nil }
+                    let changes = value.changes(from: base)
+                    guard changes != AccountPreferences() else { return nil }
+                    return try await session.client.updateAccountPreferences(changes)
+                }
+                guard let stored else { return }
+                session.setPreferences(stored)
+                saved = stored
+                // Later edits made while this was saving stay in the draft for their own save.
+                if draft == value { draft = stored }
+            } catch {
+                session.handle(error)
+                session.preferencesSaveError = error.localizedDescription
+                if draft == value, let saved { draft = saved }
             }
         }
     }

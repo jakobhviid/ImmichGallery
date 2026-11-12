@@ -181,26 +181,60 @@ struct ExploreFoldersView: View {
 }
 
 private struct ExploreFolderView: View {
-    @Environment(LibrarySession.self) private var session
     let node: ExploreFolderNode
 
     var body: some View {
-        AssetGridContainer(source: .explore(.folder(node.id)), title: Text(verbatim: node.name)) {
-            if let children = node.children, session.gridModel(for: .explore(.folder(node.id))).viewerID == nil {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 12) {
-                        ForEach(children) { child in
-                            NavigationLink(value: child) {
-                                Label(child.name, systemImage: "folder")
-                            }
-                            .help(child.id)
-                        }
-                    }
-                    .padding()
+        // Like an album's or a person's page: the folder's name, its path and its subfolders head the page and scroll
+        // away with its photos, and the toolbar shows the name once they have.
+        AssetGridContainer(source: .explore(.folder(node.id)), title: Text(verbatim: node.name), headerScrolls: true) {
+            header
+        }
+        // The subfolders are what a folder without photos of its own holds, so its empty page only says so quietly.
+        .environment(\.gridEmptyNote, node.children == nil ? nil : "No photos directly in this folder")
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: node.name).font(.largeTitle.bold()).lineLimit(1)
+                .help(node.name)
+                .accessibilityAddTraits(.isHeader)
+            Text(verbatim: node.id).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
+                .textSelection(.enabled)
+            if let children = node.children {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104, maximum: 140), spacing: 8)], spacing: 8) {
+                    ForEach(children) { ExploreSubfolderTile(node: $0) }
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                Divider()
+                .padding(.top, 12)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 12)
+    }
+}
+
+/// A subfolder, as Finder's icon view shows one: opening it shows its photos and its own subfolders.
+private struct ExploreSubfolderTile: View {
+    let node: ExploreFolderNode
+    @State private var hovering = false
+
+    var body: some View {
+        NavigationLink(value: node) {
+            VStack(spacing: 6) {
+                Image(systemName: "folder.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 40))
+                    .foregroundStyle(.tint)
+                    .frame(height: 44)
+                    .accessibilityHidden(true)
+                Text(verbatim: node.name).font(.callout).lineLimit(2).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10).padding(.horizontal, 6)
+            .background(.quaternary.opacity(hovering ? 1 : 0), in: .rect(cornerRadius: 8))
+            .contentShape(.rect(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(node.id)
     }
 }

@@ -24,54 +24,7 @@ struct AssetViewer: View {
     @State private var isZoomed = false
 
     var body: some View {
-        Group {
-            if isPresentation {
-                media
-            } else {
-                GeometryReader { geometry in
-                    ScrollViewReader { scroll in
-                        ScrollView {
-                            LazyVStack(spacing: 0) {
-                                media
-                                    .frame(height: geometry.size.height)
-                                    .id("photo")
-                                    .overlay(alignment: .bottom) {
-                                        if !isZoomed {
-                                            Button {
-                                                withAnimation { scroll.scrollTo("details", anchor: .top) }
-                                            } label: {
-                                                Label("Info", systemImage: "chevron.up")
-                                            }
-                                            .buttonStyle(.plain)
-                                            .padding(10)
-                                            .adaptiveGlass(in: .capsule)
-                                            .padding(.bottom, 12)
-                                        }
-                                    }
-                                VStack(spacing: 0) {
-                                    HStack {
-                                        Text("Info").font(.title2.bold())
-                                        Spacer()
-                                        Button {
-                                            withAnimation { scroll.scrollTo("photo", anchor: .top) }
-                                            isFocused = true
-                                        } label: { Label("Back to Photo", systemImage: "chevron.down") }
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 20)
-                                    AssetInspector(assetID: item.id, scrollable: false)
-                                }
-                                .frame(maxWidth: 720)
-                                .frame(maxWidth: .infinity)
-                                .id("details")
-                            }
-                        }
-                        .scrollDisabled(isZoomed)
-                    }
-                }
-            }
-        }
-
+        media
         .safeAreaInset(edge: .top) { if !isPresentation { AssetsStackButton(item: item, model: model).id(item.id) } }
         .deferredContextMenu {
             if let viewer {

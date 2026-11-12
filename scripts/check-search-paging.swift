@@ -8,7 +8,7 @@ struct AccountStore {
     struct Account { let serverURL: URL; let apiURL: URL; let credential: Credential }
 }
 enum AccountVault {
-    struct Entry { let id: String; let account: AccountStore.Account; let userID: String }
+    struct Entry { let id: String; let account: AccountStore.Account; let userID: String; var name = ""; var email = "" } // Finder access reads the names.
     static var legacyAccountForMigration: AccountStore.Account? { nil }
     @MainActor static var restoreReads = 0
     @MainActor static func loadEntries() throws -> [Entry] { restoreReads += 1; return [] }

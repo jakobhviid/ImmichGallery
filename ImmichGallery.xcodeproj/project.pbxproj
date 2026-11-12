@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1A0000000000000000000032 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 1A0000000000000000000031 /* Sparkle */; };
 		1A000000000000000000002B /* ImmichGalleryWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000020 /* ImmichGalleryWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1A000000000000000000004A /* ImmichGalleryFileProvider.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000040 /* ImmichGalleryFileProvider.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,6 +19,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 1A0000000000000000000023;
 			remoteInfo = ImmichGalleryWidget;
+		};
+		1A000000000000000000004B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A000000000000000000000A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000043;
+			remoteInfo = ImmichGalleryFileProvider;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -29,6 +37,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				1A000000000000000000002B /* ImmichGalleryWidget.appex in Embed Foundation Extensions */,
+				1A000000000000000000004A /* ImmichGalleryFileProvider.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -42,11 +51,33 @@
 		1A0000000000000000000001 /* ImmichGallery.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImmichGallery.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000012 /* ImmichGallery.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImmichGallery.entitlements; sourceTree = "<group>"; };
+		1A0000000000000000000040 /* ImmichGalleryFileProvider.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ImmichGalleryFileProvider.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A000000000000000000004E /* ImmichGalleryFileProvider-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ImmichGalleryFileProvider-Info.plist"; sourceTree = "<group>"; };
+		1A000000000000000000004F /* ImmichGalleryFileProvider.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImmichGalleryFileProvider.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1A000000000000000000004D /* Exceptions for "ImmichGallery" folder in "ImmichGalleryFileProvider" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"API/ImmichClient+Albums.swift",
+				"API/ImmichClient+Upload.swift",
+				API/ImmichClient.swift,
+				"API/Models+Albums.swift",
+				"API/Models+Assets.swift",
+				"API/Models+Upload.swift",
+				API/Models.swift,
+			);
+			target = 1A0000000000000000000043 /* ImmichGalleryFileProvider */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1A0000000000000000000002 /* ImmichGallery */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1A000000000000000000004D /* Exceptions for "ImmichGallery" folder in "ImmichGalleryFileProvider" target */,
+			);
 			path = ImmichGallery;
 			sourceTree = "<group>";
 		};
@@ -58,6 +89,16 @@
 		1A0000000000000000000022 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000041 /* ImmichGalleryFileProvider */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ImmichGalleryFileProvider;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000042 /* FileProviderShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FileProviderShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -78,6 +119,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1A0000000000000000000045 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -87,6 +135,8 @@
 				1A0000000000000000000002 /* ImmichGallery */,
 				1A0000000000000000000021 /* ImmichGalleryWidget */,
 				1A0000000000000000000022 /* Shared */,
+				1A0000000000000000000041 /* ImmichGalleryFileProvider */,
+				1A0000000000000000000042 /* FileProviderShared */,
 				1A0000000000000000000010 /* Config */,
 				1A0000000000000000000005 /* Products */,
 			);
@@ -97,6 +147,7 @@
 			children = (
 				1A0000000000000000000001 /* ImmichGallery.app */,
 				1A0000000000000000000020 /* ImmichGalleryWidget.appex */,
+				1A0000000000000000000040 /* ImmichGalleryFileProvider.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,6 +159,8 @@
 				1A0000000000000000000012 /* ImmichGallery.entitlements */,
 				1A000000000000000000002E /* ImmichGalleryWidget-Info.plist */,
 				1A000000000000000000002F /* ImmichGalleryWidget.entitlements */,
+				1A000000000000000000004E /* ImmichGalleryFileProvider-Info.plist */,
+				1A000000000000000000004F /* ImmichGalleryFileProvider.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -128,10 +181,12 @@
 			);
 			dependencies = (
 				1A000000000000000000002D /* PBXTargetDependency */,
+				1A000000000000000000004C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				1A0000000000000000000002 /* ImmichGallery */,
 				1A0000000000000000000022 /* Shared */,
+				1A0000000000000000000042 /* FileProviderShared */,
 			);
 			name = ImmichGallery;
 			packageProductDependencies = (
@@ -164,6 +219,29 @@
 			productReference = 1A0000000000000000000020 /* ImmichGalleryWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		1A0000000000000000000043 /* ImmichGalleryFileProvider */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000047 /* Build configuration list for PBXNativeTarget "ImmichGalleryFileProvider" */;
+			buildPhases = (
+				1A0000000000000000000044 /* Sources */,
+				1A0000000000000000000045 /* Frameworks */,
+				1A0000000000000000000046 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				1A0000000000000000000041 /* ImmichGalleryFileProvider */,
+				1A0000000000000000000042 /* FileProviderShared */,
+			);
+			name = ImmichGalleryFileProvider;
+			packageProductDependencies = (
+			);
+			productName = ImmichGalleryFileProvider;
+			productReference = 1A0000000000000000000040 /* ImmichGalleryFileProvider.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -178,6 +256,9 @@
 						CreatedOnToolsVersion = 27.2;
 					};
 					1A0000000000000000000023 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+					1A0000000000000000000043 = {
 						CreatedOnToolsVersion = 27.2;
 					};
 				};
@@ -202,6 +283,7 @@
 			targets = (
 				1A0000000000000000000006 /* ImmichGallery */,
 				1A0000000000000000000023 /* ImmichGalleryWidget */,
+				1A0000000000000000000043 /* ImmichGalleryFileProvider */,
 			);
 		};
 /* End PBXProject section */
@@ -215,6 +297,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		1A0000000000000000000026 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000000000000000000046 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -238,6 +327,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1A0000000000000000000044 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -246,20 +342,26 @@
 			target = 1A0000000000000000000023 /* ImmichGalleryWidget */;
 			targetProxy = 1A000000000000000000002C /* PBXContainerItemProxy */;
 		};
+		1A000000000000000000004C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000043 /* ImmichGalleryFileProvider */;
+			targetProxy = 1A000000000000000000004B /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1A000000000000000000000C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 23;
+				IMMICH_APP_BUNDLE_ID = dev.igol.ImmichGallery.Dev;
 				IMMICH_APP_GROUP = "$(TeamIdentifierPrefix)dev.igol.ImmichGallery.Dev";
 				SPARKLE_FEED_URL = "https://github.com/IGOLz/ImmichGallery/releases/latest/download/appcast.xml";
 				IMMICH_APP_NAME = "Immich Gallery Dev";
 				IMMICH_URL_SCHEME = immichgallery-dev;
 				IMMICH_CROSSLINK_SCHEME = immich-crosslink-dev;
 				IMMICH_CROSSLINK_VERSION = "0.2-dev";
-				MARKETING_VERSION = 0.6.1;
+				MARKETING_VERSION = 0.7.2;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -290,14 +392,15 @@
 		1A000000000000000000000D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 23;
+				IMMICH_APP_BUNDLE_ID = dev.igol.ImmichGallery;
 				IMMICH_APP_GROUP = "$(TeamIdentifierPrefix)dev.igol.ImmichGallery";
 				SPARKLE_FEED_URL = "https://github.com/IGOLz/ImmichGallery/releases/latest/download/appcast.xml";
 				IMMICH_APP_NAME = ImmichGallery;
 				IMMICH_URL_SCHEME = immichgallery;
 				IMMICH_CROSSLINK_SCHEME = immich-crosslink;
 				IMMICH_CROSSLINK_VERSION = 0.2;
-				MARKETING_VERSION = 0.6.1;
+				MARKETING_VERSION = 0.7.2;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -425,9 +528,68 @@
 			};
 			name = Release;
 		};
+		1A0000000000000000000048 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/ImmichGalleryFileProvider.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/ImmichGalleryFileProvider-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Immich Gallery Dev";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.igol.ImmichGallery.Dev.FileProvider;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		1A0000000000000000000049 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/ImmichGalleryFileProvider.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/ImmichGalleryFileProvider-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Immich Gallery";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.igol.ImmichGallery.FileProvider;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1A0000000000000000000047 /* Build configuration list for PBXNativeTarget "ImmichGalleryFileProvider" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000048 /* Debug */,
+				1A0000000000000000000049 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		1A0000000000000000000027 /* Build configuration list for PBXNativeTarget "ImmichGalleryWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
