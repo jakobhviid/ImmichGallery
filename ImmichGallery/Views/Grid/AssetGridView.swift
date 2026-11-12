@@ -82,6 +82,8 @@ struct AssetGridHost<Header: View>: View {
     @State private var slider = ViewerSlider()
     /// The open photo's neighbours, for a swipe to uncover.
     @State private var neighbors: (previous: String?, next: String?) = (nil, nil)
+    /// The pointer is over the page, for the open photo's side arrows.
+    @State private var pointerOverViewer = false
 
     /// Library's Years or Months instead of the grid.
     private var overview: LibraryMode? {
@@ -140,6 +142,7 @@ struct AssetGridHost<Header: View>: View {
             }
         }
         .coordinateSpace(.named(ViewerCellFrames.space))
+        .background(ViewerPointerTracking { pointerOverViewer = $0 })
         .onGeometryChange(for: CGSize.self) { $0.size } action: { hostSize = $0 }
         // Without a motion (Reduce Motion, or a square off screen), the photo cross-fades. Stepping swaps it under the
         // slide without animating: nothing in SwiftUI animates while the slide's layers move.
@@ -339,6 +342,7 @@ struct AssetGridHost<Header: View>: View {
         viewer.onScaleChange = { photoScale = $0 }
         viewer.onExpandMap = expandMap
         viewer.closeOverlay = closeExpandedMap
+        viewer.showsSideArrows = pointerOverViewer
         if !reduceMotion {
             viewer.onSwipeDrag = swipeDrag
             viewer.onSwipeEnd = swipeEnd

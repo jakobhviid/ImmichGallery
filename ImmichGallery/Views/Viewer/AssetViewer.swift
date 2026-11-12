@@ -33,6 +33,9 @@ struct AssetViewer: View {
     /// steps when it ends.
     var onSwipeDrag: ((CGFloat) -> Void)?
     var onSwipeEnd: ((Int?) -> Void)?
+    /// The pointer is over the photo: the side arrows show, as in Photos. Kept by the page, because each photo gets a
+    /// new viewer.
+    var showsSideArrows = false
 
     @Environment(\.viewerContext) private var viewer
     var isPresentation = false
@@ -41,8 +44,6 @@ struct AssetViewer: View {
     /// The backdrop behind the photo, fading as a pinch shrinks it.
     @State private var backdrop = 1.0
     @State private var pinching = false
-    /// The side arrows show while the pointer is over the photo, as in Photos.
-    @State private var hoveringPhoto = false
 
     var body: some View {
         Group {
@@ -148,12 +149,11 @@ struct AssetViewer: View {
                     navButton("chevron.right", delta: 1)
                 }
                 .padding(.horizontal, 16)
-                .opacity(hoveringPhoto ? 1 : 0)
-                .allowsHitTesting(hoveringPhoto)
-                .animation(.easeInOut(duration: 0.2), value: hoveringPhoto)
+                .opacity(showsSideArrows ? 1 : 0)
+                .allowsHitTesting(showsSideArrows)
+                .animation(.easeInOut(duration: 0.2), value: showsSideArrows)
             }
         }
-        .onHover { hoveringPhoto = $0 }
         .background(ViewerSwipeNavigation(
             isEnabled: !item.isVideo && !isZoomed && (isPresentation || viewer?.window == nil),
             isCurrent: { [model, id = item.id] in model.viewerID == id },
