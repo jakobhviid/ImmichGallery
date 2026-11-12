@@ -194,32 +194,46 @@ struct PersonEditSheet: View {
     }
 }
 
+/// The people in a photo, in the Info panel: their round faces and names. A person shows their page with the photo
+/// selected in it, as a face below the photo does.
 struct InspectorPeopleList: View {
     @Environment(LibrarySession.self) private var session
+    let assetID: String
     let people: [AssetPerson]
-    @State private var selected: Person?
-    @State private var error: String?
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if people.isEmpty { Text("No people").foregroundStyle(.secondary) }
             ForEach(people) { person in
                 Button {
-                    Task {
-                        do { selected = try await session.client.person(person.id) }
-                        catch { session.handle(error); self.error = error.localizedDescription }
+                    NotificationCenter.default.post(name: .crosslinkShow, object: session,
+                                                    userInfo: ["item": Crosslink.Item.asset(assetID, .person(person.id)),
+                                                               "opensAsset": false])
+                } label: {
+                    HStack(spacing: 8) {
+                        InspectorPersonFace(personID: person.id)
+                        Text(person.name.isEmpty ? "Unnamed Person" : person.name)
+                            .foregroundStyle(person.name.isEmpty ? .secondary : .primary)
+                            .lineLimit(1)
                     }
-                } label: { Label(person.name.isEmpty ? "Unnamed Person" : person.name, systemImage: "person.crop.circle") }
-                    .buttonStyle(.link)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
-        .alert("People", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-            Button("OK") { error = nil }
-        } message: { Text(error ?? "") }
-        .sheet(item: $selected) { person in
-            NavigationStack {
-                PersonDetailView(person: person)
-                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { selected = nil } } }
-            }.frame(minWidth: 850, minHeight: 650)
-        }
+    }
+}
+
+/// A person's face, small and round, as people show beside their names elsewhere.
+private struct InspectorPersonFace: View {
+    @Environment(LibrarySession.self) private var session
+    let personID: String
+    @State private var image: CGImage?
+
+    var body: some View {
+        Circle().fill(.quaternary)
+            .overlay { if let image { Image(decorative: image, scale: 1).resizable().scaledToFill() } }
+            .clipShape(Circle())
+            .frame(width: 26, height: 26)
+            .task(id: personID) { image = await session.pipeline.personThumbnail(personID) }
     }
 }

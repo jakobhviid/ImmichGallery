@@ -299,10 +299,13 @@ final class CrosslinkRevealHost: CrosslinkAssetHost {
     let session: LibrarySession
     let source: GridSource
     let alone: () -> Void
+    /// Opens the asset; or, for a face below a photo, selects it in the grid, scrolled to.
+    let opens: Bool
 
-    init(session: LibrarySession, source: GridSource, alone: @escaping () -> Void) {
+    init(session: LibrarySession, source: GridSource, opens: Bool = true, alone: @escaping () -> Void) {
         self.session = session
         self.source = source
+        self.opens = opens
         self.alone = alone
     }
 
@@ -320,7 +323,7 @@ final class CrosslinkRevealHost: CrosslinkAssetHost {
         session.closeViewer() // A full-screen viewer or slideshow from this window.
         let model = session.gridModel(for: source)
         model.viewerScrollTarget = id
-        model.open(id)
+        if opens { model.open(id) } else { model.selection = [id] }
     }
 
     func showAlone(_ id: String) { alone() }
@@ -333,8 +336,8 @@ extension LibrarySession {
     /// an album shared with you) is shown alone, and one in the Locked Folder not at all. Stops when the link goes
     /// stale (`navigation`).
     func crosslinkReveal(_ id: String, in source: GridSource, ticket: CrosslinkNavigation.Ticket,
-                         navigation: CrosslinkNavigation, alone: @escaping () -> Void) {
-        let host = CrosslinkRevealHost(session: self, source: source, alone: alone)
+                         navigation: CrosslinkNavigation, opens: Bool = true, alone: @escaping () -> Void) {
+        let host = CrosslinkRevealHost(session: self, source: source, opens: opens, alone: alone)
         navigation.run(ticket) { await navigation.reveal(id, ticket: ticket, host: host) }
     }
 }

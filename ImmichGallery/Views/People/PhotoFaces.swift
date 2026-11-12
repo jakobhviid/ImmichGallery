@@ -63,15 +63,19 @@ import SwiftUI
 /// Face Names and Manage Faces in the photo's toolbar, before the search field.
 struct PeopleFaceToolbarItems: CustomizableToolbarContent {
     @Binding var showingList: Bool
+    /// Dimmed for a video: the items stay, so the toolbar keeps its layout from one photo to the next.
+    var isEnabled = true
     @AppStorage(PhotoFaces.shownKey) private var shown = false
 
     var body: some CustomizableToolbarContent {
         ToolbarItem(id: "manageFaces") {
             Button { showingList = true } label: { Label("Manage Faces", systemImage: "person.2") }
+                .disabled(!isEnabled)
         }
         ToolbarItem(id: "showFaces") {
             Toggle(isOn: $shown) { Label("Face Names", systemImage: "person.crop.rectangle") }
                 .help(shown ? "Hide Face Names" : "Show Face Names")
+                .disabled(!isEnabled)
         }
     }
 }

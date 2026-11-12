@@ -51,6 +51,7 @@ struct AssetGridHost<Header: View>: View {
     @State private var inspectorShown = UserDefaults.standard.bool(forKey: "showInspector")
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
+    @AppStorage(TimelineRail.shownKey) private var showsDateScroller = true
     @State private var pendingDelete: [String]?
     @State private var pendingRemoval: [String]?
     @State private var photoZoom: PhotoZoomRequest?
@@ -63,6 +64,24 @@ struct AssetGridHost<Header: View>: View {
     @AppStorage("library.mode") private var libraryMode = LibraryMode.all
     /// The month Months opens at, after a year card.
     @State private var overviewStart: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var cellFrames = ViewerCellFrames()
+    /// The open photo's zoom out of its square, back in, or slide to the next one.
+    @State private var motion: ViewerMotion?
+    /// The photo the viewer last moved to, or nil for the grid: one update behind `model.viewerID` when it changes.
+    @State private var settledID: String?
+    @State private var hostSize: CGSize = .zero
+    /// The scale a pinch left the photo at as it closed.
+    @State private var pinchedScale: Double?
+    /// A pinch is shrinking the photo: the grid shows through behind it.
+    @State private var revealsGrid = false
+    /// The open photo's zoom, for the toolbar's slider.
+    @State private var photoScale = 1.0
+    /// The photo's place, opened out over it from the map below it.
+    @State private var expandedMap: PhotoPlace?
+    @State private var slider = ViewerSlider()
+    /// The open photo's neighbours, for a swipe to uncover.
+    @State private var neighbors: (previous: String?, next: String?) = (nil, nil)
 
     /// Library's Years or Months instead of the grid.
     private var overview: LibraryMode? {
@@ -93,28 +112,56 @@ struct AssetGridHost<Header: View>: View {
                     AssetGridView(model: model, onDelete: requestDelete, onTags: { ids, removing in
                         guard model.canMutate(ids) else { return }
                         tagRequest = ExploreTagRequest(ids: ids, removing: removing)
-                    }, onRemove: requestRemoval, scrollHeader: headerScrolls ? AnyView(header) : nil)
+                    }, onRemove: requestRemoval, scrollHeader: headerScrolls ? AnyView(header) : nil, cellFrames: cellFrames)
                 }
             }
             // Switching between Years, Months and All Photos replaces the view with a transition, as in Photos.
             .id(overview ?? .all)
             .transition(.blurReplace)
-            .opacity(model.viewerID == nil ? 1 : 0)
+            // Behind a photo flying out of it or back in, or pinched smaller, the grid shows, dimmed.
+            .opacity(model.viewerID == nil || shownMotion?.isFlight == true || revealsGrid ? 1 : 0)
             .allowsHitTesting(model.viewerID == nil)
+            if let motion = shownMotion, case .flight(_, _, let opening, let dim) = motion.kind {
+                Color(nsColor: .windowBackgroundColor)
+                    .opacity(opening ? (motion.done ? 1 : 0) : (motion.done ? 0 : dim))
+                    .allowsHitTesting(false)
+            }
             if let item = viewerItem {
-                AssetViewer(model: model, item: item, playLive: $playLive, onDelete: requestDelete, onTags: { ids, removing in
-                    guard model.canMutate(ids) else { return }
-                    tagRequest = ExploreTagRequest(ids: ids, removing: removing)
-                }, onRemove: requestRemoval, zoomRequest: photoZoom, onZoom: zoomPhoto,
-                            faces: faceNamesShown ? photoFaces.boxes(for: item.id) : [])
+                photoViewer(item)
                     .id("\(item.id)-\(session.metadata.imageRevision)") // Metadata
-                    .transition(.opacity)
+                    // While a motion runs, pictures of the photos stand in for it.
+                    .opacity(shownMotion == nil ? 1 : 0)
+                    .transition(shownMotion == nil ? AnyTransition.opacity : .identity)
+            }
+            if let motion = shownMotion { motionLayer(motion) }
+            if viewerItem != nil { ViewerSlideLayer(slider: slider).allowsHitTesting(false) }
+            if let place = expandedMap {
+                ExpandedPhotoMap(place: place).transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.18), value: model.viewerID)
+        .coordinateSpace(.named(ViewerCellFrames.space))
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { hostSize = $0 }
+        // Without a motion (Reduce Motion, or a square off screen), the photo cross-fades. Stepping swaps it under the
+        // slide without animating: nothing in SwiftUI animates while the slide's layers move.
+        .animation(shownMotion == nil && !(isStepping && !reduceMotion) ? .easeOut(duration: 0.18) : nil, value: model.viewerID)
+        .task(id: model.viewerID) {
+            guard let id = model.viewerID else { neighbors = (nil, nil); return }
+            let previous = await model.neighbor(of: id, delta: -1)?.id
+            let next = await model.neighbor(of: id, delta: 1)?.id
+            if model.viewerID == id { neighbors = (previous, next) }
+        }
+        .onChange(of: model.viewerID) { old, new in
+            revealsGrid = false
+            if let old, let new { slide(from: old, to: new) }
+            expandedMap = nil
+            startMotion(from: old, to: new)
+        }
+        .onAppear { settledID = model.viewerID }
         .modifier(MetadataHost(model: model)) // Metadata
         .navigationTitle(viewerItem?.date.map { Text(ImmichDate.day($0)) } ?? (headerNamesPage ? Text(verbatim: "") : title))
         .navigationSubtitle(headerNamesPage && viewerItem == nil ? "" : subtitle)
+        // An open photo's title is in the middle of the toolbar, as in Photos (`photoTitle`).
+        .toolbar(removing: viewerItem == nil ? nil : .title)
         // An open photo has its own Back, to the photos; the page's Back returns with them.
         .navigationBarBackButtonHidden(model.viewerID != nil)
         .toolbar(id: "assetGrid") { toolbar }
@@ -221,6 +268,150 @@ struct AssetGridHost<Header: View>: View {
         pendingDelete = ids
     }
 
+    /// From one photo to another, in the update before `startMotion` has run.
+    private var isStepping: Bool {
+        settledID != nil && model.viewerID != nil && settledID != model.viewerID
+    }
+
+    /// The motion running, or the one about to start: for the update in which `model.viewerID` changes, before
+    /// `startMotion` runs, so the first frame already shows its start.
+    private var shownMotion: ViewerMotion? {
+        motion ?? (model.viewerID != settledID ? makeMotion(from: settledID, to: model.viewerID, generation: 0) : nil)
+    }
+
+    private func makeMotion(from old: String?, to new: String?, generation: Int) -> ViewerMotion? {
+        guard !reduceMotion, old != new else { return nil }
+        let bounds = CGRect(origin: .zero, size: hostSize)
+        switch (old, new) {
+        case (nil, let id?):
+            guard let flight = flight(of: id, in: bounds) else { return nil }
+            return ViewerMotion(id: id, kind: .flight(from: flight.square, to: flight.fit, opening: true, dim: 0),
+                                generation: generation)
+        case (let id?, nil):
+            guard let flight = flight(of: id, in: bounds) else { return nil }
+            let from = pinchedScale.map { ViewerMotionLayout.scaled(flight.fit, by: $0) } ?? flight.fit
+            let dim = pinchedScale.map(ViewerMotionLayout.backdrop(forPinch:)) ?? 1
+            return ViewerMotion(id: id, kind: .flight(from: from, to: flight.square, opening: false, dim: dim), generation: generation)
+        default:
+            return nil
+        }
+    }
+
+    /// A photo's grid square, as the grid shows it (cropped, or whole in Aspect Ratio), and its place in the viewer.
+    private func flight(of id: String, in bounds: CGRect) -> (square: CGRect, fit: CGRect)? {
+        guard let cell = cellFrames.frames[id], ViewerMotionLayout.isShown(cell, in: bounds),
+              let item = model.item(id), cachedImage(id) != nil else { return nil }
+        let square = aspectRatio ? ViewerMotionLayout.fitted(item.ratio, in: cell) : cell
+        return (square, ViewerMotionLayout.fitted(item.ratio, in: bounds))
+    }
+
+    private func startMotion(from old: String?, to new: String?) {
+        let generation = (motion?.generation ?? 0) + 1
+        let next = makeMotion(from: old, to: new, generation: generation)
+        // A photo closing into a square off screen fades instead; the grid scrolls to it as it shows again. The grid
+        // doesn't follow while hidden behind a photo: scrolling it then made AppKit's layout loop and throw.
+        if let old, new == nil, next == nil { model.viewerScrollTarget = old }
+        settledID = new
+        pinchedScale = nil
+        motion = next
+        guard let next else { return }
+        // After the start has been drawn, so there's something to move from.
+        Task { @MainActor in
+            guard motion?.generation == generation else { return }
+            withAnimation(.smooth(duration: next.isFlight ? 0.35 : 0.3)) {
+                motion?.done = true
+            } completion: {
+                if motion?.generation == generation { motion = nil }
+            }
+        }
+    }
+
+    private func cachedImage(_ id: String) -> CGImage? {
+        session.pipeline.cachedThumbnail(id, size: .preview) ?? session.pipeline.cachedThumbnail(id, size: .thumbnail)
+    }
+
+    private func photoViewer(_ item: AssetItem) -> AssetViewer {
+        var viewer = AssetViewer(model: model, item: item, playLive: $playLive, onDelete: requestDelete,
+                                 onTags: requestTags, onRemove: requestRemoval, zoomRequest: photoZoom, onZoom: zoomPhoto,
+                                 faces: faceNamesShown ? photoFaces.boxes(for: item.id) : [])
+        viewer.onPinchClose = pinchClose
+        viewer.onPinchChange = { revealsGrid = $0 }
+        viewer.onScaleChange = { photoScale = $0 }
+        viewer.onExpandMap = expandMap
+        viewer.closeOverlay = closeExpandedMap
+        if !reduceMotion {
+            viewer.onSwipeDrag = swipeDrag
+            viewer.onSwipeEnd = swipeEnd
+        }
+        return viewer
+    }
+
+    private func requestTags(_ ids: [String], removing: Bool) {
+        guard model.canMutate(ids) else { return }
+        tagRequest = ExploreTagRequest(ids: ids, removing: removing)
+    }
+
+    private func pinchClose(_ scale: Double) {
+        pinchedScale = scale
+        model.viewerID = nil
+    }
+
+    private func expandMap(_ place: PhotoPlace) {
+        withAnimation(.easeOut(duration: 0.2)) { expandedMap = place }
+    }
+
+    /// Esc and Back close the opened-out map before the photo.
+    private func closeExpandedMap() -> Bool {
+        guard expandedMap != nil else { return false }
+        withAnimation(.easeOut(duration: 0.2)) { expandedMap = nil }
+        return true
+    }
+
+    /// The flying copy of the photo.
+    @ViewBuilder private func motionLayer(_ motion: ViewerMotion) -> some View {
+        switch motion.kind {
+        case .flight(let from, let to, _, _):
+            if let image = cachedImage(motion.id) {
+                let rect = motion.done ? to : from
+                // Filling the rect, so a square crop opens out to the whole photo.
+                Image(decorative: image, scale: 1)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: rect.width, height: rect.height)
+                    .clipped()
+                    .position(x: rect.midX, y: rect.midY)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    /// Stepping slides pictures of the two photos in Core Animation (`ViewerSlider`), while the photo underneath is
+    /// swapped without animating.
+    private func slide(from old: String, to new: String) {
+        guard !reduceMotion, expandedMap == nil, let a = model.order(of: old), let b = model.order(of: new),
+              let outgoing = cachedImage(old), let incoming = cachedImage(new) else { return }
+        slider.slide(from: outgoing, to: incoming, direction: ViewerMotionLayout.direction(from: a, to: b), toID: new)
+    }
+
+    /// The photos follow a trackpad swipe: the open one, and the neighbour it uncovers.
+    private func swipeDrag(_ width: CGFloat) {
+        guard let id = model.viewerID, let current = cachedImage(id) else { return }
+        slider.drag(width, current: current, previous: neighbors.previous.flatMap(cachedImage),
+                    next: neighbors.next.flatMap(cachedImage))
+    }
+
+    /// The swipe ended: far enough, it finishes the step on the layers and moves to that photo; otherwise back.
+    private func swipeEnd(_ direction: Int?) {
+        let target = direction == 1 ? neighbors.next : direction == -1 ? neighbors.previous : nil
+        guard let target, cachedImage(target) != nil else {
+            slider.endDrag(direction: nil, toID: nil)
+            return
+        }
+        slider.endDrag(direction: direction, toID: target)
+        model.viewerID = target
+        model.selection = [target]
+    }
+
     /// Face names and Manage Faces, for an open photo, as Photos has them.
     private var canShowFaces: Bool {
         viewerItem?.isVideo == false && session.features.facialRecognition && photoFaces.supported
@@ -241,6 +432,26 @@ struct AssetGridHost<Header: View>: View {
             Label(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio", systemImage: "rectangle.arrowtriangle.2.inward")
         }
         .help(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio")
+    }
+
+    private func photoTitle(_ item: AssetItem) -> some CustomizableToolbarContent {
+        ToolbarItem(id: "photoTitle", placement: .principal) {
+            VStack(spacing: 1) {
+                Text(item.date.map(ImmichDate.day) ?? "").font(.headline)
+                Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            // A steady width, so the toolbar doesn't lay itself out again for every date.
+            .frame(width: 280)
+        }
+        .customizationBehavior(.disabled)
+    }
+
+    private var photoZoomSlider: some CustomizableToolbarContent {
+        ToolbarItem(id: "photoZoom", placement: .navigation) {
+            PhotoZoomSlider(scale: photoScale) { zoomPhoto(.to($0)) }
+                .disabled(viewerItem?.isVideo != false)
+        }
     }
 
     private func zoomPhoto(_ zoom: PhotoZoomRequest.Zoom) {
@@ -267,27 +478,37 @@ struct AssetGridHost<Header: View>: View {
         let grid = overview == nil
 
         if model.viewerID != nil {
+            if let item = viewerItem {
+                // Plain text in the middle, as Photos' title is, not in a capsule.
+                if #available(macOS 26, *) {
+                    photoTitle(item).sharedBackgroundVisibility(.hidden)
+                } else {
+                    photoTitle(item)
+                }
+            }
             ToolbarItem(id: "back", placement: .navigation) {
-                Button { model.viewerID = nil } label: { Label("Back", systemImage: "chevron.backward") }
-                    .help("Back to grid")
+                Button { if !closeExpandedMap() { model.viewerID = nil } } label: { Label("Back", systemImage: "chevron.backward") }
+                    .help(expandedMap == nil ? "Back to grid" : "Back to photo")
             }
-            if viewerItem?.isVideo == false {
-                if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
-                ToolbarItem(id: "photoZoomOut") {
-                    Button { zoomPhoto(.zoomOut) } label: { Label("Zoom Out", systemImage: "minus") }
+            // Over the opened-out map, the photo's zoom and faces would act on the photo hidden under it.
+            // The photo's items stay from one photo to the next, dimmed where they don't apply (a video has no zoom
+            // or faces, most photos aren't Live), so stepping doesn't change the toolbar's layout. Over the opened-out
+            // map they go: they would act on the photo hidden under it.
+            if expandedMap == nil {
+                // Photos' zoom slider, beside Back; it draws its own capsule, apart from Back's.
+                if #available(macOS 26, *) {
+                    photoZoomSlider.sharedBackgroundVisibility(.hidden)
+                } else {
+                    photoZoomSlider
                 }
-                ToolbarItem(id: "photoZoomIn") {
-                    Button { zoomPhoto(.zoomIn) } label: { Label("Zoom In", systemImage: "plus") }
-                }
-                if canShowFaces {
+                if session.features.facialRecognition && photoFaces.supported {
                     if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
-                    PeopleFaceToolbarItems(showingList: $showingFaceList)
+                    PeopleFaceToolbarItems(showingList: $showingFaceList, isEnabled: canShowFaces)
                 }
-            }
-            if viewerItem?.livePhotoVideoID != nil {
                 ToolbarItem(id: "live") {
                     Toggle(isOn: $playLive) { Label("Live", systemImage: "livephoto") }
                         .help("Play Live Photo")
+                        .disabled(viewerItem?.livePhotoVideoID == nil)
                 }
             }
         } else {
@@ -308,6 +529,14 @@ struct AssetGridHost<Header: View>: View {
             }
             if #available(macOS 26, *) { ToolbarSpacer(.fixed) }
             ToolbarItem(id: "aspectRatio") { aspectRatioButton.disabled(!grid) }
+            if model.showsSectionHeaders {
+                // The date scroller beside the grid: a calendar with a timeline at its trailing edge.
+                ToolbarItem(id: "dateScroller") {
+                    Toggle(isOn: $showsDateScroller) { Label("Date Scroller", systemImage: "calendar.day.timeline.trailing") }
+                        .help(showsDateScroller ? "Hide Date Scroller" : "Show Date Scroller")
+                        .disabled(!grid)
+                }
+            }
             if let page = model.source.gridPage {
                 ToolbarItem(id: "viewOptions") {
                     GridViewOptions(page: page, dateAddedAvailable: GridArrangement.supportsDateAdded(session.version))
@@ -414,6 +643,8 @@ struct AssetGridView: View {
     var scrollHeader: AnyView?
     /// A quieter message for a page whose header already holds what there is, such as a folder of subfolders.
     @Environment(\.gridEmptyNote) private var emptyNote
+    /// Where the squares are, for an open photo to fly out of and back into.
+    var cellFrames: ViewerCellFrames?
 
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @State private var zoomBase: Double?
@@ -425,6 +656,10 @@ struct AssetGridView: View {
     @State private var shownFit = UserDefaults.standard.bool(forKey: GridMetrics.aspectRatioKey)
     @State private var visibleCells = VisibleCells()
     @State private var emptyHeaderHeight: CGFloat = 0
+    @AppStorage(TimelineRail.shownKey) private var showsDateScroller = true
+    /// Follows `showsDateScroller`, keeping the first photo in view where it was as the columns change.
+    @State private var shownRail = UserDefaults.standard.object(forKey: TimelineRail.shownKey) as? Bool ?? true
+    @State private var railPosition = TimelineRailPosition()
 
     var body: some View {
         Group {
@@ -571,6 +806,11 @@ struct AssetGridView: View {
         .onScrollTargetVisibilityChange(idType: CellKey.self, threshold: 0.3) { keys in
             visibleCells.keys = keys
             model.showing(sections: keys.map(\.section))
+            if let first = visibleCells.first(in: model.sections),
+               let section = model.sections.first(where: { $0.id == first.section }) {
+                railPosition.month = first.section
+                railPosition.progress = Double(first.index) / Double(max(1, section.count))
+            }
         }
         // Zooming keeps the first photo in view where it was, and animates the photos to their new places, as
         // Photos does; a pinch follows the fingers, then settles on the nearest zoom level.
@@ -581,14 +821,38 @@ struct AssetGridView: View {
                 if let anchor { proxy.scrollTo(anchor, anchor: .topLeading) }
             }
         }
+        // The scroller's space changes the columns: the photo in the middle of the view stays in the middle. The grid
+        // lays out its new columns first, and a lazy grid's first scroll deep in a large library lands on its estimate
+        // of the rows above, so it scrolls a second time once they're measured.
+        .onChange(of: showsDateScroller) { _, shown in
+            let anchor = visibleCells.middle(in: model.sections)
+            shownRail = shown
+            guard let anchor else { return }
+            Task { @MainActor in
+                await Task.yield()
+                proxy.scrollTo(anchor, anchor: .center)
+                try? await Task.sleep(for: .milliseconds(30))
+                proxy.scrollTo(anchor, anchor: .center)
+            }
+        }
         .onChange(of: aspectRatio) { _, fit in
             withAnimation(.smooth(duration: 0.35)) { shownFit = fit }
         }
         // The grid's columns, for moving up and down a row: an adaptive grid fits as many minimum-width items
         // as the width holds.
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { gridWidth = $0 }
-        .onChange(of: GridColumns(width: gridWidth, size: shownSize), initial: true) { _, columns in
+        .onChange(of: GridColumns(width: photosWidth, size: shownSize), initial: true) { _, columns in
             model.columns = columns.count
+        }
+        .safeAreaInset(edge: .trailing, spacing: 0) {
+            if let months = railMonths {
+                let columns = GridColumns(width: photosWidth, size: shownSize).count
+                TimelineRail(sections: months, columns: columns,
+                             rowHeight: (photosWidth - 2 * CGFloat(columns - 1)) / CGFloat(columns) + 2,
+                             position: railPosition) { section in
+                    proxy.scrollTo(CellKey(section: section.id, index: 0, asset: section.assets?.first?.id), anchor: .top)
+                }
+            }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             // Assign Location: the list leaves out months whose check failed.
@@ -643,6 +907,19 @@ struct AssetGridView: View {
         .onDeleteCommand { delete(Array(model.selection), command: false) }
     }
 
+    /// The months the date scroller shows: a timeline's, as months with headers, and enough of them to scroll through.
+    private var railMonths: [GridSection]? {
+        guard shownRail, model.showsSectionHeaders else { return nil }
+        let months = model.sections.filter { model.shownCount($0) > 0 }
+        guard months.count >= 3, months.allSatisfy({ TimelineRailLayout.isMonth($0.id) }) else { return nil }
+        return months
+    }
+
+    /// The photos' width, beside the date scroller.
+    private var photosWidth: CGFloat {
+        max(0, gridWidth - (railMonths == nil ? 0 : TimelineRail.inset))
+    }
+
     /// As in Photos: ⌘⌫ deletes; ⌫ takes the photos out of an album, and deletes them elsewhere.
     private func delete(_ ids: [String], command: Bool) {
         guard !ids.isEmpty else { return }
@@ -690,6 +967,12 @@ struct AssetGridView: View {
             .macOriginalContainerItem(asset.map { model.macOriginalTransfer($0.id, isVideo: $0.isVideo, client: session.client) })
         }
         .onAppear { model.cellAppeared(section: s, item: i) }
+        .onGeometryChange(for: ViewerCellFrame.self) { geometry in
+            ViewerCellFrame(id: asset?.id, frame: geometry.frame(in: .named(ViewerCellFrames.space)))
+        } action: { cell in
+            if let id = cell.id { cellFrames?.frames[id] = cell.frame }
+        }
+        .onDisappear { if let id = asset?.id { cellFrames?.frames[id] = nil } }
         .onTapGesture(count: 2) { if let asset { model.open(asset.id) } }
         .simultaneousGesture(TapGesture().onEnded { if let asset { model.click(asset.id) } })
         .deferredContextMenu {
@@ -792,6 +1075,13 @@ private final class VisibleCells {
         let shown = Set(keys.map(\.section))
         guard let section = sections.first(where: { shown.contains($0.id) }) else { return nil }
         return keys.filter { $0.section == section.id }.min { $0.index < $1.index }
+    }
+
+    /// The cell in the middle of those in view, in the grid's order.
+    func middle(in sections: [GridSection]) -> CellKey? {
+        let order = Dictionary(sections.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let sorted = keys.sorted { (order[$0.section] ?? 0, $0.index) < (order[$1.section] ?? 0, $1.index) }
+        return sorted.isEmpty ? nil : sorted[sorted.count / 2]
     }
 }
 
@@ -916,7 +1206,12 @@ struct ThumbnailCell: View {
     private var badges: some View {
         if let asset, asset.isFavorite || asset.isVideo || asset.livePhotoVideoID != nil || asset.stackCount != nil {
             HStack(spacing: 4) {
-                if asset.isFavorite { Image(systemName: "heart.fill") }
+                if asset.isFavorite {
+                    // On a dark plate, so it shows on snow and sky too.
+                    Image(systemName: "heart.fill")
+                        .padding(3)
+                        .background(.black.opacity(0.45), in: .rect(cornerRadius: 4))
+                }
                 Spacer(minLength: 0)
                 if let count = asset.stackCount {
                     Label("\(count)", systemImage: "square.stack.3d.up.fill").labelStyle(.titleAndIcon)

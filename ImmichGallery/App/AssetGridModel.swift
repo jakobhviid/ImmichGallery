@@ -768,6 +768,9 @@ final class AssetGridModel {
         index[id].map { (sections[$0.section].id, $0.item) }
     }
 
+    /// Where a loaded photo is in the grid's order, by section and item index.
+    func order(of id: String) -> (section: Int, item: Int)? { index[id] }
+
     /// Every photo, as in Photos: the loaded ones now, and the months not loaded yet as they load, unless the selection
     /// changes meanwhile.
     func selectAll() {

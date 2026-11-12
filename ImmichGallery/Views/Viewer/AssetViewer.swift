@@ -1,7 +1,8 @@
 import AVKit
 import SwiftUI
 
-/// Single-asset viewer shown in place of the grid (like double-clicking in Photos).
+/// Single-asset viewer shown in place of the grid (like double-clicking in Photos). Below the photo, a two-finger scroll
+/// down, are its people, its place and its details, as Photos has them; the Info panel (⌘I) shows them beside it too.
 struct AssetViewer: View {
     @Environment(LibrarySession.self) private var session
     @Bindable var model: AssetGridModel
@@ -17,14 +18,52 @@ struct AssetViewer: View {
     var onZoom: (PhotoZoomRequest.Zoom) -> Void = { _ in }
     /// The face boxes to draw, while the page shows face names.
     var faces: [PeopleFace] = []
+    /// Pinching the photo smaller than it fits closes it, as in Photos; the page flies it back into the grid from the
+    /// scale the pinch left it at.
+    var onPinchClose: ((Double) -> Void)?
+    /// While a pinch shrinks the photo, the page shows the grid behind it, through the fading backdrop.
+    var onPinchChange: (Bool) -> Void = { _ in }
+    /// The photo's zoom, for the toolbar's slider.
+    var onScaleChange: (Double) -> Void = { _ in }
+    /// Double-clicking the map below the photo opens it out over the photo.
+    var onExpandMap: (PhotoPlace) -> Void = { _ in }
+    /// Esc and Back close what the page shows over the photo, such as the opened-out map, before the photo.
+    var closeOverlay: () -> Bool = { false }
+    /// A trackpad swipe that the photos follow, then the step it ends in (nil to spring back). Without them a swipe
+    /// steps when it ends.
+    var onSwipeDrag: ((CGFloat) -> Void)?
+    var onSwipeEnd: ((Int?) -> Void)?
 
     @Environment(\.viewerContext) private var viewer
     var isPresentation = false
     @FocusState private var isFocused: Bool
     @State private var isZoomed = false
+    /// The backdrop behind the photo, fading as a pinch shrinks it.
+    @State private var backdrop = 1.0
+    @State private var pinching = false
+    /// The side arrows show while the pointer is over the photo, as in Photos.
+    @State private var hoveringPhoto = false
 
     var body: some View {
-        media
+        Group {
+            if isPresentation {
+                media
+            } else {
+                GeometryReader { geometry in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            media.frame(height: geometry.size.height)
+                            AssetInspector(assetID: item.id, layout: .belowPhoto, onExpandMap: onExpandMap)
+                                .frame(maxWidth: 900)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                    }
+                    // A zoomed photo pans with two fingers instead.
+                    .scrollDisabled(isZoomed)
+                }
+            }
+        }
         .safeAreaInset(edge: .top) { if !isPresentation { AssetsStackButton(item: item, model: model).id(item.id) } }
         .deferredContextMenu {
             if let viewer {
@@ -52,7 +91,9 @@ struct AssetViewer: View {
         .onKeyPress(action: handleKey)
         // ⌫ is the key of the Edit menu's Delete, which takes it before the viewer sees it.
         .onDeleteCommand { delete(command: false) }
-        .onExitCommand { if isPresentation { viewer?.close() } else { model.viewerID = nil } }
+        .onExitCommand {
+            if isPresentation { viewer?.close() } else if !closeOverlay() { model.viewerID = nil }
+        }
         .task(id: item.id) { await prefetchNeighbours() }
     }
 
@@ -63,7 +104,7 @@ struct AssetViewer: View {
 
     private var media: some View {
         ZStack {
-            if !isPresentation { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
+            if !isPresentation { Color(nsColor: .windowBackgroundColor).opacity(backdrop).ignoresSafeArea() }
 
             if viewer?.window != nil && !isPresentation {
                 Color(nsColor: .windowBackgroundColor)
@@ -78,7 +119,16 @@ struct AssetViewer: View {
                     .draggable(OriginalTransfer(id: item.id, isVideo: true, client: session.client))
             } else {
                 ZoomableImage(item: item, rotation: viewer?.rotation ?? 0, faces: faces, isZoomed: $isZoomed,
-                              zoomRequest: zoomRequest)
+                              zoomRequest: zoomRequest, onPinchClose: isPresentation ? nil : onPinchClose,
+                              onDoubleClick: isPresentation ? nil : { model.viewerID = nil },
+                              onPinch: isPresentation ? nil : { scale in
+                                  backdrop = scale.map(ViewerMotionLayout.backdrop(forPinch:)) ?? 1
+                                  if pinching != (scale != nil) {
+                                      pinching = scale != nil
+                                      onPinchChange(pinching)
+                                  }
+                              },
+                              onScaleChange: onScaleChange)
                     .id(item.id)
                 if playLive, let videoID = item.livePhotoVideoID {
                     VideoPlayerView(
@@ -98,14 +148,20 @@ struct AssetViewer: View {
                     navButton("chevron.right", delta: 1)
                 }
                 .padding(.horizontal, 16)
+                .opacity(hoveringPhoto ? 1 : 0)
+                .allowsHitTesting(hoveringPhoto)
+                .animation(.easeInOut(duration: 0.2), value: hoveringPhoto)
             }
         }
+        .onHover { hoveringPhoto = $0 }
         .background(ViewerSwipeNavigation(
             isEnabled: !item.isVideo && !isZoomed && (isPresentation || viewer?.window == nil),
             isCurrent: { [model, id = item.id] in model.viewerID == id },
             onNavigate: { delta in
                 if isPresentation { viewer?.stepWithoutWrapping(delta) } else { step(delta) }
-            }))
+            },
+            onDrag: isPresentation ? nil : onSwipeDrag,
+            onDragEnd: isPresentation ? nil : onSwipeEnd))
     }
 
     private var videoFinished: (@MainActor @Sendable () -> Void)? {
@@ -160,6 +216,7 @@ struct AssetViewer: View {
         switch press.key {
         case .leftArrow: step(-1)
         case .rightArrow: step(1)
+        case .escape where closeOverlay(): break
         case .space where !item.isVideo, .escape, .return: model.viewerID = nil
         case .delete, .deleteForward:
             guard press.modifiers.isDisjoint(with: [.shift, .option, .control]) else { return .ignored }
@@ -179,7 +236,11 @@ struct AssetViewer: View {
 
 /// Zooming the open photo, from the toolbar's buttons, ⌘+ and ⌘−, or Z; each press is a new request.
 struct PhotoZoomRequest: Equatable {
-    enum Zoom { case zoomIn, zoomOut, toggle }
+    enum Zoom: Equatable {
+        case zoomIn, zoomOut, toggle
+        /// The toolbar's slider: this scale, 1 being fitted.
+        case to(Double)
+    }
     let zoom: Zoom
     let generation: Int
 }
@@ -199,6 +260,12 @@ private struct ZoomableImage: View {
     var faces: [PeopleFace] = []
     @Binding var isZoomed: Bool
     var zoomRequest: PhotoZoomRequest?
+    var onPinchClose: ((Double) -> Void)?
+    /// Double-clicking the photo closes it, as in Photos; the full-screen viewer zooms instead.
+    var onDoubleClick: (() -> Void)?
+    /// A pinch below fitted size, and nil when it ends.
+    var onPinch: ((Double?) -> Void)?
+    var onScaleChange: ((Double) -> Void)?
     @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
 
     @State private var image: CGImage?
@@ -249,13 +316,10 @@ private struct ZoomableImage: View {
             .contentShape(Rectangle())
             .gesture(magnify)
             .simultaneousGesture(pan(in: geo.size), isEnabled: scale * gestureScale > 1)
-            .onTapGesture(count: 2) {
-                withAnimation(.snappy) {
-                    if scale > 1 { scale = 1; offset = .zero } else { scale = 2.5 }
-                }
-            }
+            .onTapGesture(count: 2) { if let onDoubleClick { onDoubleClick() } else { toggleZoom() } }
         }
         .clipped()
+        .background(ViewerSmartZoom(onSmartZoom: toggleZoom))
         .background(ViewerScrollPan(isEnabled: scale * gestureScale > 1) { delta in
             offset.width += delta.width
             offset.height += delta.height
@@ -269,6 +333,14 @@ private struct ZoomableImage: View {
         .onChange(of: zoomRequest) { _, request in
             if let request { zoom(request.zoom) }
         }
+        .onChange(of: scale, initial: true) { _, value in onScaleChange?(value) }
+    }
+
+    /// A two-finger double-tap and Z, and double-clicking in the full-screen viewer: in, or back to fit.
+    private func toggleZoom() {
+        withAnimation(.snappy) {
+            if scale > 1 { scale = 1; offset = .zero } else { scale = 2.5 }
+        }
     }
 
     /// Keeps the point in the middle of the view where it is, as pinching does. Toggling zooms as double-clicking does.
@@ -277,6 +349,13 @@ private struct ZoomableImage: View {
         case .zoomIn: min(8, scale * 1.5)
         case .zoomOut: max(1, scale / 1.5)
         case .toggle: scale > 1 ? 1 : 2.5
+        case .to(let value): min(8, max(1, value))
+        }
+        if case .to = zoom {
+            // The toolbar's slider: follows it as it moves, without an animation trailing behind.
+            offset = target <= 1 ? .zero : CGSize(width: offset.width * target / scale, height: offset.height * target / scale)
+            scale = target
+            return
         }
         withAnimation(.snappy) {
             offset = target <= 1 ? .zero : CGSize(width: offset.width * target / scale, height: offset.height * target / scale)
@@ -286,10 +365,22 @@ private struct ZoomableImage: View {
 
     private var magnify: some Gesture {
         MagnifyGesture()
-            .onChanged { gestureScale = $0.magnification }
+            .onChanged { value in
+                gestureScale = value.magnification
+                if scale <= 1 { onPinch?(min(1, value.magnification)) }
+            }
             .onEnded { value in
-                scale = min(8, max(1, scale * value.magnification))
-                gestureScale = 1
+                if scale <= 1, value.magnification < ViewerMotionLayout.pinchCloseScale, let onPinchClose {
+                    onPinchClose(value.magnification)
+                    return
+                }
+                // A pinch that didn't close springs back to fitted size, and the backdrop with it.
+                let shrunk = scale * value.magnification < 1
+                withAnimation(shrunk ? .snappy : nil) {
+                    scale = min(8, max(1, scale * value.magnification))
+                    gestureScale = 1
+                    onPinch?(nil)
+                }
                 if scale == 1 { withAnimation(.snappy) { offset = .zero } }
             }
     }

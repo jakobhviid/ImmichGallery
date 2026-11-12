@@ -66,7 +66,10 @@ struct MainView: View {
             filters: { selection = .search; showSearchFilters = true }))
         .onReceive(NotificationCenter.default.publisher(for: .viewerShowLibrary, object: session)) { _ in selection = .library }
         .onReceive(NotificationCenter.default.publisher(for: .crosslinkShow, object: session)) { note in // Crosslink
-            if let item = note.userInfo?["item"] as? Crosslink.Item { showCrosslink(item) }
+            // A face below a photo selects the photo in the person's grid ("opensAsset": false).
+            if let item = note.userInfo?["item"] as? Crosslink.Item {
+                showCrosslink(item, opensAsset: note.userInfo?["opensAsset"] as? Bool ?? true)
+            }
         }
         // Crosslink: another link came, or the window closed (also on signing out or switching accounts): what this
         // window was still doing for a link is stale. Choosing, pushing and popping pages end it in `PageNavigation`.
@@ -97,14 +100,14 @@ struct MainView: View {
     }
 
     // Crosslink: shows what a link from another app names. `PageNavigation` owns the link's tasks.
-    private func showCrosslink(_ item: Crosslink.Item) {
+    private func showCrosslink(_ item: Crosslink.Item, opensAsset: Bool = true) {
         let session = session
         let client = session.client
         navigation.showCrosslink(item, in: CrosslinkWindow(
             select: { selection = $0 },
             person: { try await client.person($0) },
             reveal: { [openWindow, navigation] id, source, ticket in
-                session.crosslinkReveal(id, in: source, ticket: ticket, navigation: navigation.links,
+                session.crosslinkReveal(id, in: source, ticket: ticket, navigation: navigation.links, opens: opensAsset,
                                         alone: { openWindow(id: "widget-photo", value: id) }) // as a widget photo opens
             },
             cannotShow: { CrosslinkReceiver.cannotShow($0, session: session) }))

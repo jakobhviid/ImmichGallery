@@ -4,6 +4,12 @@ import SwiftUI
 struct AssetInspector: View {
     @Environment(LibrarySession.self) private var session
     let assetID: String?
+    /// In the Info panel; or below the open photo, as Photos has it, with its people and place first.
+    var layout: Layout = .panel
+    /// Below the photo: double-clicking its place's map opens the map out over the photo.
+    var onExpandMap: (PhotoPlace) -> Void = { _ in }
+
+    enum Layout { case panel, belowPhoto }
 
     @State private var state = AssetInspectorState()
     @State private var attempt = 0 // Retry
@@ -29,7 +35,10 @@ struct AssetInspector: View {
                     // of a spinner flashing at every step through the photos. Its editing controls go: they would
                     // write to the photo no longer selected.
                     let editable = state.canEdit(assetID)
-                    ScrollView { details(asset, editable: editable) }
+                    Group {
+                        // Below the photo, the photo's own scroll view scrolls them.
+                        if layout == .panel { ScrollView { details(asset, editable: editable) } } else { details(asset, editable: editable) }
+                    }
                     .opacity(editable ? 1 : 0.5)
                     .allowsHitTesting(editable)
                     .accessibilityHidden(!editable)
@@ -56,6 +65,20 @@ struct AssetInspector: View {
     private func details(_ asset: AssetResponse, editable: Bool) -> some View {
         let exif = asset.exifInfo
         return VStack(alignment: .leading, spacing: 18) {
+            if layout == .belowPhoto {
+                if let people = asset.people, !people.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("People").font(.title2)
+                        PhotoPeopleRow(assetID: asset.id, people: people)
+                    }
+                    .padding(.bottom, 10)
+                }
+                if let lat = exif?.latitude, let lon = exif?.longitude {
+                    PhotoPlaceSection(assetID: asset.id, place: PhotoPlace(latitude: lat, longitude: lon, title: placeTitle(exif)),
+                                      onExpand: onExpandMap)
+                        .padding(.bottom, 10)
+                }
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(asset.originalFileName)
                     .font(.headline)
@@ -109,20 +132,22 @@ struct AssetInspector: View {
                 }
             }
 
-            if let lat = exif?.latitude, let lon = exif?.longitude {
+            if layout == .panel, let lat = exif?.latitude, let lon = exif?.longitude {
                 VStack(alignment: .leading, spacing: 6) {
                     let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                    InspectorMap(coordinate: coordinate)
+                    PhotoLocationMap(coordinate: coordinate)
                     .frame(height: 180)
                     .clipShape(.rect(cornerRadius: 10))
                     .id("\(lat),\(lon)")
-                    let place = [exif?.city, exif?.state, exif?.country].compactMap { $0 }.joined(separator: ", ")
+                    let place = placeTitle(exif)
                     if !place.isEmpty { Text(place).font(.callout) }
                 }
             }
 
-            section("People") {
-                InspectorPeopleList(people: asset.people ?? [])
+            if layout == .panel {
+                section("People") {
+                    InspectorPeopleList(assetID: asset.id, people: asset.people ?? [])
+                }
             }
 
             if !state.albums.isEmpty {
@@ -133,6 +158,10 @@ struct AssetInspector: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func placeTitle(_ exif: Exif?) -> String {
+        [exif?.city, exif?.state, exif?.country].compactMap { $0 }.joined(separator: ", ")
     }
 
     private func exposureSpecs(_ exif: Exif) -> [String] {
@@ -184,30 +213,3 @@ private struct FlowText: View {
     }
 }
 
-/// The photo's place. MapKit's own view rather than SwiftUI's `Map`, so it can leave ⌘+ and ⌘− to the View menu: AppKit
-/// offers key equivalents to every view in the window, and the map took them even while scrolled out of sight, so
-/// they zoomed it instead of the open photo or the grid. It still zooms with the trackpad.
-private struct InspectorMap: NSViewRepresentable {
-    let coordinate: CLLocationCoordinate2D
-
-    func makeNSView(context: Context) -> MapView {
-        let map = MapView()
-        map.setRegion(MKCoordinateRegion(center: coordinate, latitudinalMeters: 3000, longitudinalMeters: 3000), animated: false)
-        let pin = MKPointAnnotation()
-        pin.coordinate = coordinate
-        map.addAnnotation(pin)
-        return map
-    }
-
-    func updateNSView(_ map: MapView, context: Context) {}
-
-    final class MapView: MKMapView {
-        override func performKeyEquivalent(with event: NSEvent) -> Bool {
-            let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
-            if flags.contains(.command), let key = event.charactersIgnoringModifiers, ["+", "=", "-"].contains(key) {
-                return false
-            }
-            return super.performKeyEquivalent(with: event)
-        }
-    }
-}

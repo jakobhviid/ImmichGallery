@@ -25,6 +25,11 @@ struct ViewerSwipeTracker {
 
     private var state = State.idle
 
+    /// While a swipe is ours, how far it has gone across, for the photos to follow the fingers.
+    var dragWidth: CGFloat? {
+        if case .claimed(let total) = state { total.width } else { nil }
+    }
+
     mutating func reset() { state = .idle }
 
     private static func isHorizontal(_ total: CGSize, beyond distance: CGFloat) -> Bool {
@@ -72,6 +77,10 @@ struct ViewerSwipeNavigation: NSViewRepresentable {
     let isEnabled: Bool
     let isCurrent: () -> Bool
     let onNavigate: (Int) -> Void
+    /// Following the fingers: how far the swipe has gone, then, when it ends, the step it makes (nil to spring back).
+    /// Without them a swipe steps when it ends.
+    var onDrag: ((CGFloat) -> Void)?
+    var onDragEnd: ((Int?) -> Void)?
 
     func makeNSView(context: Context) -> SwipeView { SwipeView() }
 
@@ -79,6 +88,8 @@ struct ViewerSwipeNavigation: NSViewRepresentable {
         view.isEnabled = isEnabled
         view.isCurrent = isCurrent
         view.onNavigate = onNavigate
+        view.onDrag = onDrag
+        view.onDragEnd = onDragEnd
     }
 
     static func dismantleNSView(_ view: SwipeView, coordinator: ()) {
@@ -93,6 +104,8 @@ struct ViewerSwipeNavigation: NSViewRepresentable {
         var isEnabled = false
         var isCurrent: () -> Bool = { false }
         var onNavigate: ((Int) -> Void)?
+        var onDrag: ((CGFloat) -> Void)?
+        var onDragEnd: ((Int?) -> Void)?
         var isWindowActive: (NSWindow) -> Bool = { NSApp.isActive && $0.isKeyWindow }
         var pageSwipeEnabled: () -> Bool = { NSEvent.isSwipeTrackingFromScrollEventsEnabled }
         private var monitor: Any?
@@ -124,11 +137,22 @@ struct ViewerSwipeNavigation: NSViewRepresentable {
             if let last = Self.lastEvent, last.id == id, last.time == event.timestamp {
                 return last.result ? nil : event
             }
+            let wasDragging = Self.tracker.dragWidth != nil
             let decision = Self.tracker.handle(phase: event.phase, momentumPhase: event.momentumPhase,
                                                delta: CGSize(width: event.scrollingDeltaX, height: event.scrollingDeltaY),
                                                hasPreciseDeltas: event.hasPreciseScrollingDeltas,
                                                pageSwipeEnabled: pageSwipeEnabled())
             Self.lastEvent = (id, event.timestamp, decision != .pass)
+            if let onDragEnd {
+                if case .navigate(let delta) = decision {
+                    onDragEnd(delta)
+                } else if let width = Self.tracker.dragWidth {
+                    onDrag?(width)
+                } else if wasDragging {
+                    onDragEnd(nil) // Too short, or cancelled: back to the photo.
+                }
+                return decision == .pass ? event : nil
+            }
             switch decision {
             case .pass: return event
             case .consume: return nil

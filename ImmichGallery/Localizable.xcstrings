@@ -1,6 +1,76 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Back to photo": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torna alla foto"
+          }
+        }
+      }
+    },
+    "Double-click to open the map": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fai doppio clic per aprire la mappa"
+          }
+        }
+      }
+    },
+    "Nearby Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto nelle vicinanze"
+          }
+        }
+      }
+    },
+    "Zoom": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom"
+          }
+        }
+      }
+    },
+    "Date Scroller": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra delle date"
+          }
+        }
+      }
+    },
+    "Hide Date Scroller": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi barra delle date"
+          }
+        }
+      }
+    },
+    "Show Date Scroller": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra barra delle date"
+          }
+        }
+      }
+    },
     "Cities": {
       "localizations": {
         "it": {

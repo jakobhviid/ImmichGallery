@@ -203,6 +203,7 @@ struct AppCommands: Commands {
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @AppStorage("showInspector") private var showInspector = false
+    @AppStorage(TimelineRail.shownKey) private var showsDateScroller = true
 
     private var overviewShown: Bool { libraryMode.map { $0.wrappedValue != .all } ?? false }
 
@@ -289,6 +290,7 @@ struct AppCommands: Commands {
                 .keyboardShortcut("-", modifiers: .command)
                 .disabled(grid?.viewerID != nil && photoZoom == nil)
             Button(aspectRatio ? "Show Square Photos" : "Show Aspect Ratio") { aspectRatio.toggle() }
+            Button(showsDateScroller ? "Hide Date Scroller" : "Show Date Scroller") { showsDateScroller.toggle() }
             Divider()
             Button("Refresh") {
                 if let session = session {

@@ -10,6 +10,7 @@ struct GridViewOptions: View {
     @AppStorage private var sortBy: GridSortBy
     @AppStorage private var order: GridOrder
     @AppStorage private var location: GridLocation
+    @AppStorage(TimelineRail.shownKey) private var showsDateScroller = true
 
     init(page: GridPage, dateAddedAvailable: Bool) {
         self.page = page
@@ -57,6 +58,8 @@ struct GridViewOptions: View {
                 }
                 .pickerStyle(.inline)
             }
+            Divider()
+            Toggle("Date Scroller", isOn: $showsDateScroller) // Also View > Show Date Scroller
         } label: {
             let filtered = (page.offersFavoritesFilter && show != .all) || (page.offersMediaTypeFilter && mediaType != .all)
                 || (page.offersLocationFilter && location != .all)
