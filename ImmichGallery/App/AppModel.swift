@@ -54,6 +54,7 @@ final class AppModel {
             do { user = try await client.currentUser() }
             catch ImmichError.unauthorized {
                 if let selected {
+                    try LockedFolderTouchID.forget(server: selected.account.serverURL, userID: selected.userID)
                     try AccountVault.remove(selected.id)
                     try removeSavedCache(selected)
                 }
@@ -93,7 +94,10 @@ final class AppModel {
         switching = true
         defer { switching = false }
         do {
-            // Persist removal first: a vault failure must leave the live login intact.
+            // Persist removal first: a vault failure must leave the live login intact. The kept Locked Folder PIN
+            // goes before the vault entry, so it can't outlive the account.
+            let userID = services.user?.id ?? entries.first { $0.id == currentAccountID }?.userID
+            try LockedFolderTouchID.forget(server: services.client.serverURL, userID: userID)
             if let currentAccountID { try AccountVault.remove(currentAccountID) }
             else { _ = try AccountVault.loadEntries() }
             UserDefaults.standard.set(true, forKey: "accountVaultMigrated")
@@ -124,6 +128,7 @@ final class AppModel {
 
     func removeAccount(_ entry: AccountVault.Entry) throws {
         guard !switching else { return }
+        try LockedFolderTouchID.forget(server: entry.account.serverURL, userID: entry.userID)
         try AccountVault.remove(entry.id)
         try refreshEntries()
         if currentAccountID == entry.id {

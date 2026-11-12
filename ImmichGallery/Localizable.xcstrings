@@ -1,96 +1,6 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Face Names": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nomi dei volti"
-          }
-        }
-      }
-    },
-    "Hide Face Names": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nascondi nomi dei volti"
-          }
-        }
-      }
-    },
-    "Show Face Names": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra nomi dei volti"
-          }
-        }
-      }
-    },
-    "Deselect All": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deseleziona tutto"
-          }
-        }
-      }
-    },
-    "Remove %lld items from the album?": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Remove %lld item from the album?"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Remove %lld items from the album?"
-                }
-              }
-            }
-          }
-        },
-        "it": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Rimuovere %lld elemento dall'album?"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Rimuovere %lld elementi dall'album?"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "The photos remain in your library.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le foto rimarranno nella libreria."
-          }
-        }
-      }
-    },
     "Cities": {
       "localizations": {
         "it": {
@@ -8035,266 +7945,6 @@
         }
       }
     },
-    "Settings…": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impostazioni…"
-          }
-        }
-      }
-    },
-    "Options": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opzioni"
-          }
-        }
-      }
-    },
-    "Rotate": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ruota"
-          }
-        }
-      }
-    },
-    "Rotate left, or right with Option": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ruota a sinistra, o a destra con Opzione"
-          }
-        }
-      }
-    },
-    "Show Aspect Ratio": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra proporzioni"
-          }
-        }
-      }
-    },
-    "Show Square Photos": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra foto quadrate"
-          }
-        }
-      }
-    },
-    "All Photos": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tutte le foto"
-          }
-        }
-      }
-    },
-    "Months": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mesi"
-          }
-        }
-      }
-    },
-    "Years": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anni"
-          }
-        }
-      }
-    },
-    "More": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Altro"
-          }
-        }
-      }
-    },
-    "%@ (owner)": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ (proprietario)"
-          }
-        }
-      }
-    },
-    "Album": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Album"
-          }
-        }
-      }
-    },
-    "Person": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Persona"
-          }
-        }
-      }
-    },
-    "Use as Face Photo": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa come foto del volto"
-          }
-        }
-      }
-    },
-    "Add a Name": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiungi un nome"
-          }
-        }
-      }
-    },
-    "Add Birthday": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiungi compleanno"
-          }
-        }
-      }
-    },
-    "Click to edit": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fai clic per modificare"
-          }
-        }
-      }
-    },
-    "unlock the Locked Folder": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sbloccare la cartella bloccata"
-          }
-        }
-      }
-    },
-    "Unlock with Touch ID": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sblocca con Touch ID"
-          }
-        }
-      }
-    },
-    "Unlock with the PIN once, and Touch ID unlocks it from then on.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sblocca una volta con il PIN, e da allora Touch ID la sblocca."
-          }
-        }
-      }
-    },
-    "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your keychain on this Mac, and forgotten when you turn this off.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dopo che hai sbloccato la cartella bloccata una volta con il PIN, Touch ID la sblocca. Il PIN viene conservato nel portachiavi di questo Mac e dimenticato quando disattivi questa opzione."
-          }
-        }
-      }
-    },
-    "This Mac doesn't have Touch ID set up.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touch ID non è configurato su questo Mac."
-          }
-        }
-      }
-    },
-    "Touch ID didn't unlock the Locked Folder.": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touch ID non ha sbloccato la cartella bloccata."
-          }
-        }
-      }
-    },
-    "Touch ID to unlock": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa Touch ID per sbloccare"
-          }
-        }
-      }
-    },
-    "Use PIN": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa il PIN"
-          }
-        }
-      }
-    },
-    "Use Touch ID": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa Touch ID"
-          }
-        }
-      }
-    },
     "Selected Location": {
       "localizations": {
         "it": {
@@ -10401,6 +10051,1558 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scarica"
+          }
+        }
+      }
+    },
+    "This item is in the Locked Folder. Open it from the Locked Folder in Immich Gallery.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo elemento è nella cartella bloccata. Aprilo dalla cartella bloccata in Immich Gallery."
+          }
+        }
+      }
+    },
+    "Photo in the Locked Folder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto nella cartella bloccata"
+          }
+        }
+      }
+    },
+    "Open it from the Locked Folder in Immich Gallery.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprila dalla cartella bloccata in Immich Gallery."
+          }
+        }
+      }
+    },
+    "Couldn't Check Every Month": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile controllare tutti i mesi"
+          }
+        }
+      }
+    },
+    "%lld months couldn't be loaded, so items without a location may be missing.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld month couldn't be loaded, so items without a location may be missing."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld months couldn't be loaded, so items without a location may be missing."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile caricare %lld mese: potrebbero mancare elementi senza posizione."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Impossibile caricare %lld mesi: potrebbero mancare elementi senza posizione."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "A stack needs at least two photos.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un gruppo richiede almeno due foto."
+          }
+        }
+      }
+    },
+    "Cover": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copertina"
+          }
+        }
+      }
+    },
+    "Each group becomes a stack in Immich with its cover on top. You can change the cover or unstack later. No photo is deleted.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni serie diventa un gruppo in Immich con la sua copertina in cima. Potrai cambiare la copertina o separare il gruppo in seguito. Nessuna foto viene eliminata."
+          }
+        }
+      }
+    },
+    "Every photo of yours taken in this period is checked, including ones not loaded in this view. Videos, archived photos and photos already in a stack aren't.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vengono controllate tutte le tue foto scattate in questo periodo, anche quelle non caricate in questa vista. Video, foto archiviate e foto già in un gruppo sono escluse."
+          }
+        }
+      }
+    },
+    "Find Similar Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trova foto simili"
+          }
+        }
+      }
+    },
+    "Find Similar Photos…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trova foto simili…"
+          }
+        }
+      }
+    },
+    "Include this group when stacking": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includi questa serie quando crei i gruppi"
+          }
+        }
+      }
+    },
+    "Last 12 Months": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimi 12 mesi"
+          }
+        }
+      }
+    },
+    "Last 3 Months": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimi 3 mesi"
+          }
+        }
+      }
+    },
+    "Last 30 Days": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimi 30 giorni"
+          }
+        }
+      }
+    },
+    "Look In": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca in"
+          }
+        }
+      }
+    },
+    "Loose": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ampia"
+          }
+        }
+      }
+    },
+    "Make Cover": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa come copertina"
+          }
+        }
+      }
+    },
+    "Makes this photo the cover": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa questa foto come copertina"
+          }
+        }
+      }
+    },
+    "Move Others to Recently Deleted…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sposta le altre in Eliminati di recente…"
+          }
+        }
+      }
+    },
+    "Move to Recently Deleted": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sposta in Eliminati di recente"
+          }
+        }
+      }
+    },
+    "No Similar Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto simile"
+          }
+        }
+      }
+    },
+    "No photos taken close together look alike enough. Try a longer period or a looser sensitivity.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto scattata a breve distanza è abbastanza simile. Prova un periodo più lungo o una sensibilità più ampia."
+          }
+        }
+      }
+    },
+    "Normal": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normale"
+          }
+        }
+      }
+    },
+    "Only the cover stays in the stack. You can restore the others from Recently Deleted.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nel gruppo resta solo la copertina. Puoi ripristinare le altre da Eliminati di recente."
+          }
+        }
+      }
+    },
+    "Only the selected photos are checked. Photos that aren't selected, including ones not loaded in this view, aren't.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vengono controllate solo le foto selezionate. Le foto non selezionate, comprese quelle non caricate in questa vista, sono escluse."
+          }
+        }
+      }
+    },
+    "Open Stack…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri gruppo…"
+          }
+        }
+      }
+    },
+    "Period": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Periodo"
+          }
+        }
+      }
+    },
+    "Photos taken within a few seconds of each other are compared on this Mac. Nothing changes until you stack the groups you choose.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto scattate a pochi secondi l’una dall’altra vengono confrontate su questo Mac. Non cambia nulla finché non raggruppi le serie che scegli."
+          }
+        }
+      }
+    },
+    "Remove from Group": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi dalla serie"
+          }
+        }
+      }
+    },
+    "Restore Removed Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina foto rimosse"
+          }
+        }
+      }
+    },
+    "Sensitivity": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sensibilità"
+          }
+        }
+      }
+    },
+    "Skipped: photos changed since the scan": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saltata: alcune foto sono cambiate dopo la ricerca"
+          }
+        }
+      }
+    },
+    "Stack Groups": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea gruppi"
+          }
+        }
+      }
+    },
+    "Stacked": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raggruppata"
+          }
+        }
+      }
+    },
+    "Stacked; the cover couldn't be set": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raggruppata, ma non è stato possibile impostare la copertina"
+          }
+        }
+      }
+    },
+    "Stop": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompi"
+          }
+        }
+      }
+    },
+    "Strict": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rigorosa"
+          }
+        }
+      }
+    },
+    "Strict groups only near-identical shots; Loose also groups shots with more movement.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rigorosa raggruppa solo scatti quasi identici; Ampia raggruppa anche scatti con più movimento."
+          }
+        }
+      }
+    },
+    "Suggested Cover": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copertina suggerita"
+          }
+        }
+      }
+    },
+    "Suggestions can be wrong. Click a photo to make it the cover. Nothing is deleted.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I suggerimenti possono essere sbagliati. Fai clic su una foto per usarla come copertina. Non viene eliminato nulla."
+          }
+        }
+      }
+    },
+    "The server returned the same page twice. Try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il server ha restituito due volte la stessa pagina. Riprova."
+          }
+        }
+      }
+    },
+    "The stack changed. Check it again before moving photos.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il gruppo è cambiato. Controllalo di nuovo prima di spostare le foto."
+          }
+        }
+      }
+    },
+    "Time Between Shots": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervallo tra gli scatti"
+          }
+        }
+      }
+    },
+    "To": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A"
+          }
+        }
+      }
+    },
+    "Your account isn't loaded yet. Try again in a moment.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo account non è ancora caricato. Riprova tra un momento."
+          }
+        }
+      }
+    },
+    "%lld photos couldn't be analyzed and aren't in any group.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo couldn't be analyzed and isn't in any group."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos couldn't be analyzed and aren't in any group."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non è stata analizzata e non è in nessuna serie."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non sono state analizzate e non sono in nessuna serie."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld selected items couldn't be loaded and weren't checked.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld selected item couldn't be loaded and wasn't checked."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld selected items couldn't be loaded and weren't checked."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elemento selezionato non è stato caricato e non è stato controllato."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elementi selezionati non sono stati caricati e non sono stati controllati."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Looking for photos… %lld found": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Looking for photos… %lld found"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Looking for photos… %lld found"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ricerca delle foto… %lld trovata"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ricerca delle foto… %lld trovate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Move %lld photos to Recently Deleted?": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Move %lld photo to Recently Deleted?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Move %lld photos to Recently Deleted?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Spostare %lld foto in Eliminati di recente?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Spostare %lld foto in Eliminati di recente?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Selected Photos (%lld)": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Selected Photos (%lld)"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Selected Photos (%lld)"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Foto selezionate (%lld)"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Foto selezionate (%lld)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Skipped %lld items: videos, other people's photos, and items in a stack, Recently Deleted or the Locked Folder.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Skipped %lld item: videos, other people's photos, and items in a stack, Recently Deleted or the Locked Folder."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Skipped %lld items: videos, other people's photos, and items in a stack, Recently Deleted or the Locked Folder."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elemento escluso: video, foto di altre persone ed elementi in un gruppo, in Eliminati di recente o nella Cartella bloccata."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elementi esclusi: video, foto di altre persone ed elementi in un gruppo, in Eliminati di recente o nella Cartella bloccata."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Stack %lld Groups…": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stack %lld Group…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stack %lld Groups…"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Raggruppa %lld serie…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Raggruppa %lld serie…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Stack %lld groups?": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stack %lld group?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stack %lld groups?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Raggruppare %lld serie?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Raggruppare %lld serie?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "There are more than %lld photos to check. Choose a shorter period or fewer photos so every one can be compared.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "There are more than %lld photo to check. Choose a shorter period or fewer photos so every one can be compared."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "There are more than %lld photos to check. Choose a shorter period or fewer photos so every one can be compared."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ci sono più di %lld foto da controllare. Scegli un periodo più breve o meno foto per poterle confrontare tutte."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ci sono più di %lld foto da controllare. Scegli un periodo più breve o meno foto per poterle confrontare tutte."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Analyzing %lld of %lld photos…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzing %#@c1@ of %#@c2@…"
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg photo"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg photos"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analisi di %#@c1@ di %#@c2@…"
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg foto"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg foto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Checked %lld photos and found %lld groups.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked %#@c1@ and found %#@c2@."
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg photo"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg photos"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg group"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg groups"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto controllate: %#@c1@. Serie trovate: %#@c2@."
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Stacking %lld of %lld groups…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stacking %#@c1@ of %#@c2@…"
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg group"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg groups"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raggruppamento di %#@c1@ di %#@c2@…"
+          },
+          "substitutions": {
+            "c1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg"
+                    }
+                  }
+                }
+              }
+            },
+            "c2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg serie"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg serie"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "A stack changed. Find similar photos again to refresh the suggestions.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A stack changed. Find similar photos again to refresh the suggestions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un gruppo è cambiato. Cerca di nuovo foto simili per aggiornare i suggerimenti."
+          }
+        }
+      }
+    },
+    "Recently Deleted is unavailable. No photos were removed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently Deleted is unavailable. No photos were removed."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminati di recente non è disponibile. Nessuna foto è stata rimossa."
+          }
+        }
+      }
+    },
+    "Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi dei volti"
+          }
+        }
+      }
+    },
+    "Hide Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi nomi dei volti"
+          }
+        }
+      }
+    },
+    "Show Face Names": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra nomi dei volti"
+          }
+        }
+      }
+    },
+    "Deselect All": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deseleziona tutto"
+          }
+        }
+      }
+    },
+    "Remove %lld items from the album?": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld item from the album?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld items from the album?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Rimuovere %lld elemento dall'album?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Rimuovere %lld elementi dall'album?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The photos remain in your library.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto rimarranno nella libreria."
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni…"
+          }
+        }
+      }
+    },
+    "Options": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opzioni"
+          }
+        }
+      }
+    },
+    "Rotate": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruota"
+          }
+        }
+      }
+    },
+    "Rotate left, or right with Option": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruota a sinistra, o a destra con Opzione"
+          }
+        }
+      }
+    },
+    "Show Aspect Ratio": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra proporzioni"
+          }
+        }
+      }
+    },
+    "Show Square Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra foto quadrate"
+          }
+        }
+      }
+    },
+    "All Photos": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutte le foto"
+          }
+        }
+      }
+    },
+    "Months": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesi"
+          }
+        }
+      }
+    },
+    "Years": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anni"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altro"
+          }
+        }
+      }
+    },
+    "%@ (owner)": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (proprietario)"
+          }
+        }
+      }
+    },
+    "Album": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album"
+          }
+        }
+      }
+    },
+    "Person": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persona"
+          }
+        }
+      }
+    },
+    "Use as Face Photo": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa come foto del volto"
+          }
+        }
+      }
+    },
+    "Add a Name": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi un nome"
+          }
+        }
+      }
+    },
+    "Add Birthday": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi compleanno"
+          }
+        }
+      }
+    },
+    "Click to edit": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fai clic per modificare"
+          }
+        }
+      }
+    },
+    "unlock the Locked Folder": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sbloccare la cartella bloccata"
+          }
+        }
+      }
+    },
+    "Unlock with Touch ID": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca con Touch ID"
+          }
+        }
+      }
+    },
+    "Unlock with the PIN once, and Touch ID unlocks it from then on.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca una volta con il PIN, e da allora Touch ID la sblocca."
+          }
+        }
+      }
+    },
+    "This Mac doesn't have Touch ID set up.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch ID non è configurato su questo Mac."
+          }
+        }
+      }
+    },
+    "Touch ID didn't unlock the Locked Folder.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch ID non ha sbloccato la cartella bloccata."
+          }
+        }
+      }
+    },
+    "Touch ID to unlock": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Touch ID per sbloccare"
+          }
+        }
+      }
+    },
+    "Use PIN": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il PIN"
+          }
+        }
+      }
+    },
+    "Use Touch ID": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Touch ID"
+          }
+        }
+      }
+    },
+    "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your login keychain on this Mac and given back by the app only after Touch ID. It's forgotten when you turn this off, sign out, or add or remove a fingerprint.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo che hai sbloccato la cartella bloccata una volta con il PIN, Touch ID la sblocca. Il PIN viene conservato nel portachiavi di login di questo Mac e l'app lo usa solo dopo Touch ID. Viene dimenticato quando disattivi questa opzione, esci dall'account o aggiungi o rimuovi un'impronta."
+          }
+        }
+      }
+    },
+    "The Locked Folder is unlocked, but Touch ID couldn't be set up: %@ Unlock with your PIN next time.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La cartella bloccata è sbloccata, ma non è stato possibile configurare Touch ID: %@ La prossima volta sblocca con il PIN."
+          }
+        }
+      }
+    },
+    "The keychain couldn't handle the Locked Folder PIN for Touch ID (%@).": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il portachiavi non ha accettato l'operazione sul PIN della cartella bloccata per Touch ID (%@)."
           }
         }
       }

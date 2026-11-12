@@ -39,7 +39,7 @@ The grid's Tags menu offers Add Tag… and Remove Tag… commands. Each opens a 
 
 Ordinary media uses the existing 4 GB HTTP disk cache and 512 MB decoded-image cache. Locked media uses only the view's ephemeral session and SwiftUI image state. Per-ID eviction removes ordinary cached media when moving it into Locked Folder, including stale in-flight completions. Other cached assets are retained.
 
-Touch ID remains omitted because PIN storage and biometric access control need a separate design. Locked video/Live Photo and memory playback still use preview images. The map grid represents the cluster's geographic bounds, so co-located photos inside those bounds can also appear. Date-filtered timeline counts for boundary months become exact as those buckets load.
+Touch ID unlocking is described in [MacIntegration.md](MacIntegration.md#locked-folder). Locked video/Live Photo and memory playback still use preview images. The map grid represents the cluster's geographic bounds, so co-located photos inside those bounds can also appear. Date-filtered timeline counts for boundary months become exact as those buckets load.
 
 ## Source evidence
 

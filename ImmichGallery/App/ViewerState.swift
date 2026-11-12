@@ -109,6 +109,13 @@ final class ViewerState: NSObject, NSWindowDelegate {
         return await model.neighbor(of: id, delta: delta)
     }
 
+    /// Trackpad swipes stop at the ends of a repeating selection or shuffle sequence.
+    func stepWithoutWrapping(_ delta: Int) {
+        if !sequence.isEmpty, let id = model.viewerID, let index = sequenceIndex[id],
+           !sequence.indices.contains(index + pendingStep + delta) { return }
+        step(delta)
+    }
+
     func step(_ delta: Int) {
         pendingStep += delta
         guard !navigating else { return }

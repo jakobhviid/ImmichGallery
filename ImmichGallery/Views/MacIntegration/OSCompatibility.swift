@@ -22,7 +22,9 @@ extension View {
     func macOriginalDragContainer(model: AssetGridModel, client: ImmichClient) -> some View {
         if #available(macOS 26, *) {
             dragContainer(for: OriginalTransfer.self) { (ids: [String]) in
-                ids.map { OriginalTransfer(id: $0, isVideo: model.item($0)?.isVideo ?? false, client: client) }
+                let items = ids.map { model.macOriginalTransfer($0, isVideo: model.item($0)?.isVideo ?? false, client: client) }
+                items.forEach { $0.file.start() }
+                return items
             }
             .dragContainerSelection(Array(model.selection))
         } else {
@@ -53,6 +55,18 @@ extension View {
     }
 }
 
+extension AssetGridModel {
+    var macOrderedSelection: [String] {
+        sections.flatMap { $0.assets ?? [] }.filter { selection.contains($0.id) }.map(\.id)
+    }
+
+    /// The macOS 26+ drag item of one grid asset. Each container item carries only its own ID for
+    /// album drops; Locked Folder items carry none, so they can't be added to albums.
+    func macOriginalTransfer(_ id: String, isVideo: Bool, client: ImmichClient) -> OriginalTransfer {
+        OriginalTransfer(id: id, isVideo: isVideo, client: client, albumIDs: source == .locked ? nil : [id])
+    }
+}
+
 extension View {
     /// macOS 15 grid drag. A `Transferable` with a file representation is exported there as a
     /// file promise only, so album drop targets never saw the asset IDs. This provider carries
@@ -61,11 +75,11 @@ extension View {
     func legacyAssetDrag(albumIDs: AlbumAssetTransfer? = nil, original: OriginalTransfer) -> some View {
         onDrag {
             let provider = NSItemProvider()
-            // The Finder names the file when the drag starts, before the original (and its real
-            // filename) is downloaded; the asset ID beats the default name "data".
-            provider.suggestedName = original.id
+            // The Finder names the file when the drag starts, before the original is downloaded.
+            let file = original.file.resolved
+            provider.suggestedName = file.name
             // The original first: the Finder takes the first representation it can save.
-            provider.registerFileRepresentation(forTypeIdentifier: UTType.data.identifier, fileOptions: [], visibility: .all) { completion in
+            provider.registerFileRepresentation(forTypeIdentifier: file.type.identifier, fileOptions: [], visibility: .all) { completion in
                 Task {
                     do { completion(try await original.client.macIntegrationOriginal(original.id), false, nil) }
                     catch { completion(nil, false, error) }
@@ -133,7 +147,7 @@ struct AlbumRowAssetDrop: ViewModifier {
     func body(content: Content) -> some View {
         if #available(macOS 26, *) {
             content.dropDestination(for: AlbumAssetTransfer.self) { (values: [AlbumAssetTransfer], _: CGPoint) -> Bool in
-                return addAssets(values.flatMap(\.ids))
+                return addAssets(AlbumAssetTransfer.mergedIDs(values))
             }
         } else {
             content

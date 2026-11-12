@@ -6,12 +6,50 @@ import SwiftUI
     /// One path for each sidebar item, so switching items starts at the item's page.
     private var paths: [SidebarItem: NavigationPath] = [:]
     var item: SidebarItem = .library
+    /// Crosslink: what a link is still doing in this window (fetching a person, loading a grid as far as a photo).
+    /// The user moving (choosing a page, pushing, going back) makes it stale; the link's own pages do not.
+    @ObservationIgnored let links = CrosslinkNavigation()
 
     func path(for item: SidebarItem) -> NavigationPath { paths[item] ?? NavigationPath() }
-    func setPath(_ path: NavigationPath, for item: SidebarItem) { paths[item] = path }
-    func reset() { paths = [:] }
+
+    /// The stack's own changes: the user pushing or going back on the page shown.
+    func setPath(_ path: NavigationPath, for item: SidebarItem) {
+        if item == self.item, path != self.path(for: item) { links.invalidate() }
+        paths[item] = path
+    }
+
+    /// Another page chosen: every page starts again from its start.
+    func reset() {
+        links.invalidate()
+        paths = [:]
+    }
 
     func open<Value: Hashable>(_ value: Value) {
+        links.invalidate()
+        push(value)
+    }
+
+    /// The window's selection changed. Another page starts from its start, every page with it, and makes a link
+    /// stale, unless the link chose the page itself (`linkShow`): then its pages pushed meanwhile stay.
+    func selectionChanged(to selection: SidebarItem?) {
+        guard selection == nil || selection != item else { return }
+        item = selection ?? .library
+        reset()
+    }
+
+    /// Crosslink: a link shows a page from its start, staying current.
+    func linkShow(_ item: SidebarItem) {
+        self.item = item
+        paths = [:]
+    }
+
+    /// Crosslink: a link pushes onto the page it shows, at once, if it is still current.
+    func linkOpen<Value: Hashable>(_ value: Value, ticket: CrosslinkNavigation.Ticket) {
+        guard links.isCurrent(ticket) else { return }
+        push(value)
+    }
+
+    private func push<Value: Hashable>(_ value: Value) {
         var path = path(for: item)
         path.append(value)
         var transaction = Transaction()

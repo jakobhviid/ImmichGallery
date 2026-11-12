@@ -8,6 +8,12 @@ struct AlbumAssetTransfer: Codable, Transferable {
     static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .albumAssetIDs)
     }
+
+    /// The IDs of all dropped items, in order and without repeats.
+    static func mergedIDs(_ values: [AlbumAssetTransfer]) -> [String] {
+        var seen = Set<String>()
+        return values.flatMap(\.ids).filter { seen.insert($0).inserted }
+    }
 }
 
 extension UTType {

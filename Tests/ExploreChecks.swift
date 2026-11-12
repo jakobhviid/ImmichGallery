@@ -32,6 +32,13 @@ import MapKit
         precondition(tree.count == 1 && tree[0].id == "/data")
         precondition(tree[0].children?.count == 2)
         precondition(tree[0].children?.first?.children?.map(\.name) == ["2024", "2025"])
+        // Folder navigation carries the subtree even when a parent contains no photos of its own.
+        let folderRoute = tree[0]
+        precondition(Set([folderRoute, ExploreFolderNode(id: folderRoute.id, children: nil)]).count == 1)
+        precondition(folderRoute != ExploreFolderNode(id: "/other", children: folderRoute.children))
+        let photos = folderRoute.children!.first { $0.name == "photos" }!
+        precondition(photos.id == "/data/photos" && photos.children!.map(\.id) == ["/data/photos/2024", "/data/photos/2025"])
+        precondition(photos.children!.allSatisfy { $0.children == nil })
         let markers = (0..<50_000).map { i in
             ExploreMarker(id: String(i), lat: Double(i % 180) - 89.5, lon: Double(i % 360) - 179.5)
         }

@@ -76,6 +76,10 @@ def update(open_app=True, force=True):
         assert info['CFBundleIdentifier'] == BUNDLE_ID
         assert info['CFBundleDisplayName'] == 'Immich Gallery Dev'
         assert info['CFBundleURLTypes'][0]['CFBundleURLSchemes'] == ['immichgallery-dev']
+        # Crosslink: Dev takes only its own scheme and announces no draft other apps follow.
+        schemes = [scheme for entry in info['CFBundleURLTypes'] for scheme in entry['CFBundleURLSchemes']]
+        assert 'immich-crosslink' not in schemes and 'immich-crosslink-dev' in schemes
+        assert info['ImmichCrosslink']['Version'] != '0.2'
         assert info['ImmichAppGroup'].endswith('.ImmichGallery.Dev')
         widget = PRODUCT / 'Contents/PlugIns/ImmichGalleryWidget.appex'
         assert bundle_info(widget)['CFBundleIdentifier'] == BUNDLE_ID + '.Widget'

@@ -13,16 +13,16 @@ import Foundation
             let item = try makeItem(entry["item"] as! [String: String])
             let server = entry["server"] as! String
             check(Crosslink.path(item) == entry["path"] as! String, "make \(name): path \(Crosslink.path(item))")
-            let link = Crosslink.link(item, server: server, user: entry["user"] as? String)
+            let link = Crosslink.link(item, server: server, user: entry["user"] as? String, scheme: Crosslink.protocolScheme)
             check(link == entry["link"] as! String, "make \(name): link \(link)")
             // What is written reads back to the same item.
-            check(Crosslink.read(link) == .show(.init(item: item, server: Crosslink.serverAddress(server), user: entry["user"] as? String)),
+            check(Crosslink.read(link, scheme: Crosslink.protocolScheme) == .show(.init(item: item, server: Crosslink.serverAddress(server), user: entry["user"] as? String)),
                   "make \(name): reads back")
         }
 
         for entry in fixtures["read"] as! [[String: Any]] {
             let name = entry["name"] as! String
-            let reading = Crosslink.read(entry["link"] as! String)
+            let reading = Crosslink.read(entry["link"] as! String, scheme: Crosslink.protocolScheme)
             switch entry["result"] as! String {
             case "show":
                 guard case .show(let link) = reading else { check(false, "read \(name): \(reading)"); continue }
@@ -44,6 +44,24 @@ import Foundation
         // Copy Immich Link gives the web address.
         check(Crosslink.webAddress(.album("b2a1c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"), server: "https://photos.example.com/")
               == "https://photos.example.com/albums/b2a1c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "web address")
+
+        // This build's scheme: the protocol's in Release, Dev's own in Debug. A link reads only in the scheme the
+        // build takes, so Dev never shows the public app's links, nor the public app Dev's.
+        #if DEBUG
+        check(Crosslink.scheme == "immich-crosslink-dev", "Debug scheme")
+        #else
+        check(Crosslink.scheme == Crosslink.protocolScheme && Crosslink.protocolScheme == "immich-crosslink", "Release scheme")
+        #endif
+        let asset = Crosslink.Item.asset("b2a1c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", .favorites)
+        let server = "https://photos.example.com"
+        let dev = "immich-crosslink-dev"
+        let devLink = Crosslink.link(asset, server: server, user: nil, scheme: dev)
+        let publicLink = Crosslink.link(asset, server: server, user: nil, scheme: Crosslink.protocolScheme)
+        check(devLink.hasPrefix(dev + "://"), "Dev link: \(devLink)")
+        check(Crosslink.read(devLink, scheme: dev) == .show(.init(item: asset, server: server, user: nil)), "Dev reads its own link")
+        check(Crosslink.read(publicLink, scheme: dev) == .invalid, "Dev does not read the public scheme")
+        check(Crosslink.read(devLink, scheme: Crosslink.protocolScheme) == .invalid, "the public app does not read Dev's")
+        check(Crosslink.read(publicLink, scheme: Crosslink.protocolScheme) != .invalid, "the public app reads the protocol's")
 
         if failures > 0 { print("\(failures) crosslink checks failed"); exit(1) }
         print("Crosslink checks passed: \((fixtures["make"] as! [Any]).count) links made, \((fixtures["read"] as! [Any]).count) read")

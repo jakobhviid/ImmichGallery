@@ -147,6 +147,12 @@ struct AssetViewer: View {
                 .padding(.horizontal, 16)
             }
         }
+        .background(ViewerSwipeNavigation(
+            isEnabled: !item.isVideo && !isZoomed && (isPresentation || viewer?.window == nil),
+            isCurrent: { [model, id = item.id] in model.viewerID == id },
+            onNavigate: { delta in
+                if isPresentation { viewer?.stepWithoutWrapping(delta) } else { step(delta) }
+            }))
     }
 
     private var videoFinished: (@MainActor @Sendable () -> Void)? {

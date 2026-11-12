@@ -22,12 +22,16 @@ private struct WidgetPhotoWindow: View {
     @State private var image: CGImage?
     @State private var asset: AssetResponse?
     @State private var failed = false
+    @State private var locked = false
 
     var body: some View {
         ZStack {
             Color.black
             if let image {
                 Image(decorative: image, scale: 1).resizable().scaledToFit()
+            } else if locked {
+                ContentUnavailableView("Photo in the Locked Folder", systemImage: "lock.fill",
+                                       description: Text("Open it from the Locked Folder in Immich Gallery."))
             } else if failed {
                 ContentUnavailableView("Photo Unavailable", systemImage: "photo",
                                        description: Text("It may have been deleted, or it belongs to another account."))
@@ -39,13 +43,18 @@ private struct WidgetPhotoWindow: View {
         .navigationTitle(asset.flatMap { ImmichDate.parse($0.localDateTime) }.map { Text(ImmichDate.day($0)) } ?? Text("Photo"))
         .navigationSubtitle(asset?.originalFileName ?? "")
         .task(id: id) {
+            let fetched: AssetResponse
             do {
-                asset = try await services.client.asset(id)
+                fetched = try await services.client.asset(id)
             } catch {
                 services.handle(error)
                 failed = true
                 return
             }
+            // Locked Folder items are only shown inside the folder's own unlocked session, never through the shared
+            // image cache or in a window of their own, whatever opened this one (a widget click, a crosslink).
+            guard CrosslinkVisibility.canShow(fetched.visibility) else { locked = true; return }
+            asset = fetched
             if let preview = await services.pipeline.thumbnail(id, size: .preview) { image = preview }
             if let full = await services.pipeline.thumbnail(id, size: .fullsize) { image = full }
             if image == nil { failed = true }

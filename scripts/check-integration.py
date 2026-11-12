@@ -14,10 +14,11 @@ models = [f'ImmichGallery/API/{s}.swift' for s in ['Models', 'Models+Albums', 'M
 app = lambda s: f'ImmichGallery/App/{s}.swift'
 support = lambda s: f'ImmichGallery/Support/{s}.swift'
 cases = {
+    'quick-look-downloads': ['ImmichGallery/Views/MacIntegration/MacQuickLook.swift', 'Tests/QuickLookDownloadChecks.swift'],
     'password-banner': api + ['Tests/PasswordBannerChecks.swift'],
     'metadata-state': models + ['ImmichGallery/API/Models+Metadata.swift', app('MetadataState'), 'scripts/verify-metadata-state.swift'],
     'admin-refresh': models + ['ImmichGallery/API/Models+Admin.swift', 'ImmichGallery/API/ImmichClient+Admin.swift', app('AdminModel'), 'scripts/check-admin-refresh.swift'],
-    'paging-and-services': api + [app(s) for s in ['AppModel', 'AssetGridModel', 'GridArrangement', 'AlbumsActions', 'LockedFolderMedia', 'MetadataState', 'SharingModel', 'UploadQueue']] + [support('ImagePipeline'), support('Formatters'), 'scripts/check-search-paging.swift'],
+    'paging-and-services': api + [app(s) for s in ['AppModel', 'AssetGridModel', 'GridArrangement', 'AlbumsActions', 'LockedFolderMedia', 'LockedFolderTouchID', 'MetadataState', 'SharingModel', 'UploadQueue']] + [support('ImagePipeline'), support('Formatters'), 'scripts/check-search-paging.swift'],
     'sharing': api + [app('SharingModel'), 'scripts/checks/SharingModelCheck.swift'],
     'upload': api + [app('UploadQueue'), 'scripts/verify-upload.swift'],
     'map-annotation': api + [support('ImagePipeline'), app('ExploreClustering'), 'ImmichGallery/Views/Albums/RemoteThumbnail.swift', 'ImmichGallery/Views/Explore/ExploreMapAnnotation.swift', 'Tests/MapAnnotationChecks.swift'],
@@ -25,15 +26,20 @@ cases = {
     'people-cache': api + [support('ImagePipeline'), 'scripts/checks/people-network.swift'],
     'search': api + ['scripts/check-search.swift'],
     'oauth': api + ['Tests/OAuthChecks.swift'],
+    'locked-folder-touch-id': api + [app('LockedFolderTouchID'), 'Tests/LockedFolderTouchIDChecks.swift'],
     'tag-picker': api + ['ImmichGallery/Views/Explore/ExploreTagPicker.swift', 'Tests/ExploreTagPickerChecks.swift'],
     'grid-context-menu': ['ImmichGallery/Views/Grid/DeferredContextMenu.swift', 'Tests/GridContextMenuChecks.swift'],
+    'grid-scroll-anchor': ['ImmichGallery/Views/Grid/GridCell.swift', 'Tests/GridScrollAnchorChecks.swift'],
     'viewer-scroll-pan': ['ImmichGallery/Views/Viewer/ViewerScrollPan.swift', 'Tests/ViewerScrollPanChecks.swift'],
+    'viewer-swipe': ['ImmichGallery/Views/Viewer/ViewerSwipeNavigation.swift', 'ImmichGallery/Views/Viewer/ViewerScrollPan.swift', 'Tests/ViewerSwipeNavigationChecks.swift'],
     'sidebar-layout': [app('SidebarLayout'), 'Tests/SidebarLayoutChecks.swift'],
     'library-overview': [app('LibraryOverviewArrangement'), 'Tests/LibraryOverviewChecks.swift'],
+    'inspector-editing': models + [app('AssetInspectorState'), 'ImmichGallery/Views/InlineEditableText.swift', 'Tests/InspectorEditingChecks.swift'],
     'search-layout': ['ImmichGallery/Views/Grid/GridHeaderLayout.swift', 'Tests/SearchLayoutChecks.swift'],
     'search-landing': api + [support('ImagePipeline'), 'ImmichGallery/Views/Albums/RemoteThumbnail.swift', 'ImmichGallery/Views/Search/SearchLandingView.swift', 'Tests/SearchLandingChecks.swift'],
     'metadata': models + ['ImmichGallery/API/Models+Metadata.swift', 'scripts/verify-metadata.swift'],
     'transfer-cache': api + ['scripts/check-mac-transfer-cache.swift'],
+    'original-drag': api + ['ImmichGallery/Views/Albums/AlbumAssetTransfer.swift', 'ImmichGallery/Views/Upload/UploadDropPolicy.swift', 'ImmichGallery/Views/MacIntegration/OriginalTransfer.swift', 'Tests/OriginalDragChecks.swift'],
     'album-review': api + [app('AlbumsActions'), 'ImmichGallery/Views/Albums/AlbumAssetTransfer.swift', 'scripts/verify-album-review.swift'],
     'albums-arrangement': models + ['ImmichGallery/API/Models+Metadata.swift', app('AlbumsArrangement'), app('CollapsedGroups'), support('Formatters'), 'Tests/AlbumsArrangementChecks.swift'],
     'grid-arrangement': api + [app('GridArrangement'), support('Formatters'), 'Tests/GridArrangementChecks.swift'],
@@ -42,10 +48,18 @@ cases = {
     'people-arrangement': models + [app('PeopleArrangement'), 'Tests/PeopleArrangementChecks.swift'],
     'duplicates-arrangement': models + [app('DuplicatesArrangement'), 'Tests/DuplicatesArrangementChecks.swift'],
     'crosslink': [app('Crosslink'), 'Tests/CrosslinkChecks.swift'],
+    'crosslink-navigation': [app('Crosslink'), app('CrosslinkNavigation'), 'Tests/CrosslinkNavigationChecks.swift'],
+    'similar-photos': api + [app('SimilarPhotos'), app('SimilarPhotosAnalyzer'), app('SimilarPhotosModel'), app('AssetsStackMutation'), support('ImagePipeline'), support('Formatters'), 'Tests/SimilarPhotosChecks.swift'],
+    'crosslink-page-navigation': [app('Crosslink'), app('CrosslinkNavigation'), 'ImmichGallery/Views/PageNavigation.swift', 'ImmichGallery/Views/PageNavigation+Crosslink.swift', 'Tests/CrosslinkPageNavigationChecks.swift'],
 }
 
 def check(item):
     name, sources = item
+    if name == 'quick-look-downloads':
+        # Open only access control for the offline harness; keep production download logic unchanged.
+        exposed = out / 'MacQuickLook.swift'
+        exposed.write_text((repo / sources[0]).read_text().replace('private ', ''))
+        sources = [str(exposed), *sources[1:]]
     binary = out / name
     log = out / (name + '.log')
     with log.open('w') as stream:

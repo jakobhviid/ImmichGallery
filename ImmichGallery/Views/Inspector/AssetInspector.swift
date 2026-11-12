@@ -6,55 +6,61 @@ struct AssetInspector: View {
     let assetID: String?
     var scrollable = true
 
-    @State private var asset: AssetResponse?
-    @State private var albums: [Album] = []
-    @State private var failed = false
+    @State private var state = AssetInspectorState()
+    @State private var attempt = 0 // Retry
     @State private var peopleRevision = 0 // People
 
     var body: some View {
         Group {
-            if assetID == nil {
+            switch state.phase(for: assetID) {
+            case .none:
                 ContentUnavailableView("No Selection", systemImage: "info.circle",
                                        description: Text("Select a single photo to see its details."))
-            } else if let asset {
-                if scrollable {
-                    ScrollView { details(asset) }
-                } else {
-                    details(asset)
+            case .failed:
+                ContentUnavailableView {
+                    Label("Couldn't Load Info", systemImage: "exclamationmark.triangle")
+                } actions: {
+                    Button("Try Again") { attempt += 1 }
                 }
-            } else if failed {
-                ContentUnavailableView("Couldn't Load Info", systemImage: "exclamationmark.triangle")
-            } else {
+            case .loading:
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .current, .stale:
+                if let asset = state.asset {
+                    // The previous photo's details stay, read-only and dimmed, until the next one's arrive, instead
+                    // of a spinner flashing at every step through the photos. Its editing controls go: they would
+                    // write to the photo no longer selected.
+                    let editable = state.canEdit(assetID)
+                    Group {
+                        if scrollable {
+                            ScrollView { details(asset, editable: editable) }
+                        } else {
+                            details(asset, editable: editable)
+                        }
+                    }
+                    .opacity(editable ? 1 : 0.5)
+                    .allowsHitTesting(editable)
+                    .accessibilityHidden(!editable)
+                    .overlay(alignment: .top) {
+                        if !editable { ProgressView().controlSize(.small).padding(.top, 8) }
+                    }
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .peopleChanged, object: session.services)) { _ in peopleRevision += 1 }
-        .task(id: "\(assetID ?? "")-\(session.metadata.revision)") { // Metadata: reload after edits, keeping the current asset visible.
-            failed = false
-            // The previous photo's details stay until the next one's arrive, instead of a spinner flashing at every
-            // step through the photos.
-            guard let assetID else { asset = nil; albums = []; return }
-            do {
-                let loaded = try await session.client.asset(assetID)
-                try Task.checkCancellation()
-                if asset?.id != loaded.id { albums = [] }
-                asset = loaded
-                let loadedAlbums = (try? await session.client.albums(containing: assetID)) ?? []
-                try Task.checkCancellation()
-                albums = loadedAlbums
-            } catch {
-                if !Task.isCancelled { failed = true }
-            }
+        .task(id: "\(assetID ?? "")-\(session.metadata.revision)-\(attempt)") { // Metadata: reload after edits.
+            await AssetInspectorState.load(assetID, asset: { try await session.client.asset($0) },
+                                           albums: { (try? await session.client.albums(containing: $0)) ?? [] },
+                                           update: { $0(&state) })
         }
         .task(id: "\(assetID ?? "")-\(peopleRevision)") {
             guard peopleRevision > 0, let assetID else { return }
-            if let loaded = try? await session.client.asset(assetID), !Task.isCancelled, self.assetID == assetID {
-                asset = loaded
+            if let loaded = try? await session.client.asset(assetID), !Task.isCancelled {
+                state.loaded(loaded, for: assetID)
             }
         }
     }
 
-    private func details(_ asset: AssetResponse) -> some View {
+    private func details(_ asset: AssetResponse, editable: Bool) -> some View {
         let exif = asset.exifInfo
         return VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
@@ -66,7 +72,11 @@ struct AssetInspector: View {
                 }
             }
 
-            MetadataInspectorControls(asset: asset).id(asset.id) // Metadata
+            if editable {
+                MetadataInspectorControls(asset: asset).id(asset.id) // Metadata
+            } else if let description = asset.exifInfo?.description, !description.isEmpty {
+                Text(description)
+            }
 
             if let exif, exif.make != nil || exif.model != nil || exif.lensModel != nil {
                 card {
@@ -122,9 +132,9 @@ struct AssetInspector: View {
                 InspectorPeopleList(people: asset.people ?? [])
             }
 
-            if !albums.isEmpty {
+            if !state.albums.isEmpty {
                 section("Albums") {
-                    FlowText(albums.map(\.albumName), symbol: "rectangle.stack")
+                    FlowText(state.albums.map(\.albumName), symbol: "rectangle.stack")
                 }
             }
         }

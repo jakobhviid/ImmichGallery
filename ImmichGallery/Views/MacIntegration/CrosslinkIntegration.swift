@@ -195,13 +195,23 @@ extension GridSource {
 extension Notification.Name {
     /// Crosslink: a library window shows the item in the notification's `item` (a `Crosslink.Item`).
     static let crosslinkShow = Notification.Name("crosslinkShow")
+    /// Crosslink: another link came, so what every window was still doing for an earlier one is stale.
+    static let crosslinkArrived = Notification.Name("crosslinkArrived")
 }
 
 @MainActor
 enum CrosslinkReceiver {
+    /// Links still looking for a library window. Each window has its own for what it shows (`MainView`).
+    static let navigation = CrosslinkNavigation()
+    /// Alerts on screen, so a link sent again and again asks once.
+    private static var telling: Set<String> = []
+
     /// Shows what a link names, for the signed-in account only. Any web page can open a crosslink, so this only ever
-    /// navigates: it never changes anything, never switches accounts and never asks to sign in.
+    /// navigates: it never changes anything, never switches accounts and never asks to sign in. A new link makes
+    /// every earlier one stale, here and in every window.
     static func open(_ text: String, app: AppModel, openLibraryWindow: @escaping () -> Void) {
+        let ticket = navigation.begin()
+        NotificationCenter.default.post(name: .crosslinkArrived, object: nil)
         guard CrosslinkSettings.enabled else { return turnedOff() }
         switch Crosslink.read(text) {
         case .invalid:
@@ -217,27 +227,35 @@ enum CrosslinkReceiver {
                 let host = URL(string: link.server)?.host ?? link.server
                 return tell(String(localized: "Immich Gallery is not signed in to \(host) with this account."))
             }
-            show(link.item, services: services, openLibraryWindow: openLibraryWindow)
+            show(link.item, ticket: ticket, services: services, app: app, openLibraryWindow: openLibraryWindow)
         }
     }
 
-    private static func show(_ item: Crosslink.Item, services: AccountServices, openLibraryWindow: @escaping () -> Void) {
-        Task {
-            // At launch, the first library window may still be setting up its session.
-            for attempt in 0..<20 {
-                let window = NSApp.orderedWindows.first {
-                    ($0.isVisible || $0.isMiniaturized) && $0.tabbingIdentifier == MacWindowRoute.tabbingIdentifier
-                }
-                if let window, let session = services.windows.allObjects.first(where: { $0.macWindow === window }) {
-                    if window.isMiniaturized { window.deminiaturize(nil) }
-                    window.makeKeyAndOrderFront(nil)
-                    NSApp.activate()
-                    NotificationCenter.default.post(name: .crosslinkShow, object: session, userInfo: ["item": item])
-                    return
-                }
-                if window == nil && attempt == 4 { openLibraryWindow() }
-                try? await Task.sleep(for: .milliseconds(100))
-            }
+    /// Signing out or switching accounts: links still looking for a window are dropped (windows drop theirs as
+    /// they close for the old account).
+    static func accountChanged() { navigation.invalidate() }
+
+    private static func show(_ item: Crosslink.Item, ticket: CrosslinkNavigation.Ticket, services: AccountServices,
+                             app: AppModel, openLibraryWindow: @escaping () -> Void) {
+        navigation.run(ticket) {
+            // At launch, the first library window may still be setting up its session: it is tried again a few
+            // times. A newer link, or another account, stops this.
+            await navigation.deliver(ticket, live: { app.services === services }, deliver: {
+                guard let window = frontWindow(),
+                      let session = services.windows.allObjects.first(where: { $0.macWindow === window }) else { return false }
+                if window.isMiniaturized { window.deminiaturize(nil) }
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate()
+                NotificationCenter.default.post(name: .crosslinkShow, object: session, userInfo: ["item": item])
+                return true
+            }, hasWindow: { frontWindow() != nil }, openWindow: openLibraryWindow,
+               wait: { try? await Task.sleep(for: .milliseconds(100)) })
+        }
+    }
+
+    private static func frontWindow() -> NSWindow? {
+        NSApp.orderedWindows.first {
+            ($0.isVisible || $0.isMiniaturized) && $0.tabbingIdentifier == MacWindowRoute.tabbingIdentifier
         }
     }
 
@@ -252,6 +270,8 @@ enum CrosslinkReceiver {
     }
 
     static func tell(_ message: String) {
+        guard telling.insert(message).inserted else { return }
+        defer { telling.remove(message) }
         NSApp.activate()
         let alert = NSAlert()
         alert.messageText = String(localized: "Immich Crosslink")
@@ -260,57 +280,62 @@ enum CrosslinkReceiver {
     }
 
     private static func turnedOff() {
+        let message = String(localized: "Another app asked Immich Gallery to show an item, but Immich Crosslink is turned off.")
+        guard telling.insert(message).inserted else { return }
+        defer { telling.remove(message) }
         NSApp.activate()
         let alert = NSAlert()
         alert.messageText = String(localized: "Immich Crosslink")
-        alert.informativeText = String(localized: "Another app asked Immich Gallery to show an item, but Immich Crosslink is turned off.")
+        alert.informativeText = message
         alert.addButton(withTitle: String(localized: "Turn On"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         if alert.runModal() == .alertFirstButtonReturn { UserDefaults.standard.set(true, forKey: CrosslinkSettings.enabledKey) }
     }
 }
 
-extension LibrarySession {
-    /// Opens an asset a crosslink names in the grid it was seen in; one that is not there (archived, a partner's, in
-    /// an album shared with you) is shown alone.
-    func crosslinkReveal(_ id: String, in source: GridSource, alone: @escaping () -> Void) {
-        Task {
-            let asset: AssetResponse
-            do { asset = try await client.asset(id) }
-            catch { return CrosslinkReceiver.cannotShow(error, session: self) }
-            do {
-                let model = gridModel(for: source)
-                await model.loadIfNeeded()
-                try await model.loadForReveal(asset)
-                guard model.item(id) != nil else { return alone() }
-                closeViewer() // A full-screen viewer or slideshow from this window.
-                model.viewerScrollTarget = id
-                model.open(id)
-            } catch {
-                if !error.isCancellation { alone() }
-            }
-        }
+/// A library window, as showing an asset a link names needs it.
+@MainActor
+final class CrosslinkRevealHost: CrosslinkAssetHost {
+    let session: LibrarySession
+    let source: GridSource
+    let alone: () -> Void
+
+    init(session: LibrarySession, source: GridSource, alone: @escaping () -> Void) {
+        self.session = session
+        self.source = source
+        self.alone = alone
     }
+
+    func asset(_ id: String) async throws -> AssetResponse { try await session.client.asset(id) }
+    func visibility(of asset: AssetResponse) -> String? { asset.visibility }
+
+    func loadForReveal(_ asset: AssetResponse) async throws -> Bool {
+        let model = session.gridModel(for: source)
+        await model.loadIfNeeded()
+        try await model.loadForReveal(asset)
+        return model.item(asset.id) != nil
+    }
+
+    func open(_ id: String) {
+        session.closeViewer() // A full-screen viewer or slideshow from this window.
+        let model = session.gridModel(for: source)
+        model.viewerScrollTarget = id
+        model.open(id)
+    }
+
+    func showAlone(_ id: String) { alone() }
+    func tell(_ message: String) { CrosslinkReceiver.tell(message) }
+    func cannotShow(_ error: Error) { CrosslinkReceiver.cannotShow(error, session: session) }
 }
 
-/// What a library window pushes for a crosslink besides a person (People's own destination): a place's search.
-enum CrosslinkDestination: Hashable {
-    case place(Crosslink.Place)
-
-    var source: GridSource {
-        switch self {
-        case .place(let place):
-            var query = SearchQuery()
-            query.city = place.city ?? ""
-            query.country = place.country ?? ""
-            return .filteredSearch(query)
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .place(let place): place.city ?? place.country ?? ""
-        }
+extension LibrarySession {
+    /// Opens an asset a crosslink names in the grid it was seen in; one that is not there (archived, a partner's, in
+    /// an album shared with you) is shown alone, and one in the Locked Folder not at all. Stops when the link goes
+    /// stale (`navigation`).
+    func crosslinkReveal(_ id: String, in source: GridSource, ticket: CrosslinkNavigation.Ticket,
+                         navigation: CrosslinkNavigation, alone: @escaping () -> Void) {
+        let host = CrosslinkRevealHost(session: self, source: source, alone: alone)
+        navigation.run(ticket) { await navigation.reveal(id, ticket: ticket, host: host) }
     }
 }
 

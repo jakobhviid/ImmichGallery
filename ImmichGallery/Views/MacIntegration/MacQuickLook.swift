@@ -13,7 +13,7 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
     private var ids: [String] = []
     /// Downloaded originals by asset id: those shown, and the neighbours fetched ahead.
     private var files: [String: URL] = [:]
-    private var loading: [String: Task<Void, Never>] = [:]
+    private var loading: [String: (token: UUID, task: Task<Void, Never>)] = [:]
     private var onError: ((String) -> Void)?
     /// Moves the grid's selection for an arrow key; true when it did.
     private var onArrow: ((NSEvent) -> Bool)?
@@ -51,8 +51,8 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
             MacTransferCache.release(url.deletingLastPathComponent(), remove: true)
             files[id] = nil
         }
-        for (id, task) in loading where !keep.contains(id) {
-            task.cancel()
+        for (id, load) in loading where !keep.contains(id) {
+            load.task.cancel()
             loading[id] = nil
         }
         for id in ids + ahead { load(id) }
@@ -62,10 +62,11 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
     private func load(_ id: String) {
         guard files[id] == nil, loading[id] == nil, let session else { return }
         let current = generation
-        loading[id] = Task {
+        let token = UUID()
+        let task = Task {
             do {
                 let url = try await session.client.macIntegrationOriginal(id, preview: true)
-                guard !Task.isCancelled, generation == current, loading[id] != nil else {
+                guard !Task.isCancelled, generation == current, loading[id]?.token == token else {
                     MacTransferCache.release(url.deletingLastPathComponent(), remove: true)
                     return
                 }
@@ -73,6 +74,7 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
                 files[id] = url
                 if ids.contains(id) { update() }
             } catch {
+                guard loading[id]?.token == token else { return }
                 loading[id] = nil
                 if generation == current, !error.isCancellation, ids.contains(id) {
                     session.handle(error)
@@ -80,6 +82,7 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
                 }
             }
         }
+        loading[id] = (token, task)
     }
 
     /// Opens the panel once the first item is there, and shows what has arrived since.
@@ -106,7 +109,7 @@ final class MacQuickLook: NSResponder, @preconcurrency QLPreviewPanelDataSource,
     }
 
     private func cleanUp() {
-        loading.values.forEach { $0.cancel() }
+        loading.values.forEach { $0.task.cancel() }
         loading = [:]
         if let sourceWindow, sourceWindow.nextResponder === self { sourceWindow.nextResponder = nextResponder }
         sourceWindow = nil

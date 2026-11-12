@@ -164,15 +164,43 @@ struct ExploreFoldersView: View {
     @State private var error: String?
     var body: some View {
         List(roots, children: \.children) { node in
-            NavigationLink(value: GridRoute(source: .explore(.folder(node.id)), title: node.name)) {
+            NavigationLink(value: node) {
                 Label(node.name, systemImage: "folder")
             }.help(node.id)
+        }
+        .navigationDestination(for: ExploreFolderNode.self) { node in
+            ExploreFolderView(node: node)
         }
         .overlay { if let error { ContentUnavailableView("Folders Unavailable", systemImage: "folder", description: Text(error)) } }
         .pageToolbar("folders")
         .task {
             do { roots = ExploreFolderNode.tree(try await session.client.explorePaths()) }
             catch { self.error = error.localizedDescription }
+        }
+    }
+}
+
+private struct ExploreFolderView: View {
+    @Environment(LibrarySession.self) private var session
+    let node: ExploreFolderNode
+
+    var body: some View {
+        AssetGridContainer(source: .explore(.folder(node.id)), title: Text(verbatim: node.name)) {
+            if let children = node.children, session.gridModel(for: .explore(.folder(node.id))).viewerID == nil {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 12) {
+                        ForEach(children) { child in
+                            NavigationLink(value: child) {
+                                Label(child.name, systemImage: "folder")
+                            }
+                            .help(child.id)
+                        }
+                    }
+                    .padding()
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Divider()
+            }
         }
     }
 }

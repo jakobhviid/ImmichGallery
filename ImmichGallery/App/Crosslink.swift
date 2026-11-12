@@ -5,7 +5,15 @@ import Foundation
 // AppKit, so Tests/CrosslinkChecks.swift runs it against the protocol's test links.
 
 enum Crosslink {
-    static let scheme = "immich-crosslink"
+    /// The protocol's scheme, which the public app registers.
+    static let protocolScheme = "immich-crosslink"
+    /// The scheme this build registers, sends and finds other apps by (Info.plist, `IMMICH_CROSSLINK_SCHEME`): the
+    /// protocol's in Release; a Dev-only one in Debug, so the Dev app never takes, or sends, the public app's links.
+    #if DEBUG
+    static let scheme = "immich-crosslink-dev"
+    #else
+    static let scheme = protocolScheme
+    #endif
     /// The draft this app follows, announced in Info.plist (`ImmichCrosslink`).
     static let draft = "0.2"
     static let site = URL(string: "https://jakob.hviid.phd/immich-crosslink/")!
@@ -80,7 +88,7 @@ enum Crosslink {
     }
 
     /// The item's crosslink, for sending to one other app.
-    static func link(_ item: Item, server: String, user: String?) -> String {
+    static func link(_ item: Item, server: String, user: String?, scheme: String = scheme) -> String {
         let path = path(item)
         var link = "\(scheme)://\(path)\(path.contains("?") ? "&" : "?")server=\(encodeComponent(serverAddress(server)))"
         if let user { link += "&user=\(encodeComponent(user))" }
@@ -111,7 +119,8 @@ enum Crosslink {
 
     /// Reads a link into the protocol's three results. Only ever names an item: what to do with it is the caller's,
     /// and a link from anywhere may only be shown.
-    static func read(_ text: String) -> Reading {
+    /// `scheme` is the one this build takes (`Crosslink.scheme`); a link in another scheme is invalid here.
+    static func read(_ text: String, scheme: String = scheme) -> Reading {
         guard let components = URLComponents(string: text), components.scheme?.lowercased() == scheme,
               (components.host ?? "").isEmpty, components.port == nil, components.user == nil else { return .invalid }
         var parameters: [String: String] = [:]

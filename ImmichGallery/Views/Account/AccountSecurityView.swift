@@ -41,9 +41,17 @@ struct AccountSecurityView: View {
                 Section("Locked Folder") {
                     Toggle("Unlock with Touch ID", isOn: $touchIDEnabled)
                         .disabled(!LockedFolderTouchID.isAvailable && !touchIDEnabled)
-                        .onChange(of: touchIDEnabled) { _, enabled in if !enabled { LockedFolderTouchID.forgetAll() } }
+                        .onChange(of: touchIDEnabled) { _, enabled in
+                            // Either way, kept PINs are forgotten: turned on again, the PIN is asked once more.
+                            do { try LockedFolderTouchID.forgetAll() }
+                            catch {
+                                operation.error = error.localizedDescription
+                                // Off until the kept PINs can be forgotten, so none is used.
+                                if enabled { touchIDEnabled = false }
+                            }
+                        }
                     Text(LockedFolderTouchID.isAvailable
-                         ? "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your keychain on this Mac, and forgotten when you turn this off."
+                         ? "After you unlock the Locked Folder with your PIN once, Touch ID unlocks it. The PIN is kept in your login keychain on this Mac and given back by the app only after Touch ID. It's forgotten when you turn this off, sign out, or add or remove a fingerprint."
                          : "This Mac doesn't have Touch ID set up.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

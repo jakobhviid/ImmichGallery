@@ -451,6 +451,15 @@ struct AssetGridView: View {
                         ProgressView().controlSize(.large)
                         Text("Looking for items without a location…").font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .loaded where model.uncheckedLocationMonths > 0:
+                    // Months that failed weren't checked, so this can't say every item has a location.
+                    ContentUnavailableView {
+                        Label("Couldn't Check Every Month", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text("\(model.uncheckedLocationMonths) months couldn't be loaded, so items without a location may be missing.")
+                    } actions: {
+                        Button("Try Again") { model.retryLocationCheck() }
+                    }
                 case .loaded:
                     if let page = model.source.gridPage, model.arrangement?.hidesLocated == true {
                         ContentUnavailableView {
@@ -490,6 +499,7 @@ struct AssetGridView: View {
         case .partner: ("No Partner Photos", "person.2")
         case .largeFiles: ("No Large Files", "externaldrive")
         case .geolocation: ("No Photos to Locate", "mappin.and.ellipse")
+        case .explore(.folder): ("No Photos", "folder")
         case .explore: ("No Photos to Explore", "globe")
         default: ("No Photos", "photo.on.rectangle")
         }
@@ -514,7 +524,7 @@ struct AssetGridView: View {
                 ForEach(Array(model.sections.enumerated()), id: \.element.id) { s, section in
                     Section {
                         // IDs must be unique across sections: they all live in one lazy container.
-                        ForEach((0..<model.shownCount(section)).map { CellKey(section: section.id, index: $0, asset: model.asset(s, $0)?.id) }, id: \.self) { key in
+                        ForEach((0..<model.shownCount(section)).map { CellKey(section: section.id, index: $0, asset: section.assets?[$0].id) }, id: \.self) { key in
                             cell(s, key.index)
                         }
                     } header: {
@@ -549,6 +559,21 @@ struct AssetGridView: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { gridWidth = $0 }
         .onChange(of: GridColumns(width: gridWidth, size: shownSize), initial: true) { _, columns in
             model.columns = columns.count
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            // Assign Location: the list leaves out months whose check failed.
+            if model.uncheckedLocationMonths > 0 {
+                HStack {
+                    Label("\(model.uncheckedLocationMonths) months couldn't be loaded, so items without a location may be missing.",
+                          systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Try Again") { model.retryLocationCheck() }
+                }
+                .font(.callout)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(.bar)
+            }
         }
         .onAppear { scrollToViewerTarget(proxy) }
         .onChange(of: model.viewerScrollTarget) { scrollToViewerTarget(proxy) }
@@ -613,24 +638,27 @@ struct AssetGridView: View {
             size: thumbnailRequestSize,
             fit: shownFit
         )
-        return Group {
-            if let asset {
-                // Locked items can't be dropped on albums; they can still be dragged out as files.
-                let albumIDs = model.source == .locked ? nil : AlbumAssetTransfer(ids: model.selection.contains(asset.id) ? Array(model.selection) : [asset.id])
-                if #available(macOS 26, *) {
-                    if let albumIDs { thumbnail.draggable(albumIDs) } else { thumbnail }
+        return gridCell {
+            Group {
+                if let asset {
+                    if #available(macOS 26, *) {
+                        // One drag source (`macOriginalContainerItem`) carries the original and album IDs.
+                        thumbnail
+                    } else {
+                        // Locked items can't be dropped on albums; they can still be dragged out as files.
+                        let albumIDs = model.source == .locked ? nil : AlbumAssetTransfer(ids: model.selection.contains(asset.id) ? Array(model.selection) : [asset.id])
+                        thumbnail.legacyAssetDrag(albumIDs: albumIDs, original: OriginalTransfer(id: asset.id, isVideo: asset.isVideo, client: session.client))
+                    }
                 } else {
-                    thumbnail.legacyAssetDrag(albumIDs: albumIDs, original: OriginalTransfer(id: asset.id, isVideo: asset.isVideo, client: session.client))
+                    thumbnail
                 }
-            } else {
-                thumbnail
             }
+            .overlay(alignment: .topLeading) {
+                AssetsLargeFileBadge(asset: asset, source: model.source)
+                AssetsLocationBadge(asset: asset, source: model.source, arrangement: model.arrangement)
+            }
+            .macOriginalContainerItem(asset.map { model.macOriginalTransfer($0.id, isVideo: $0.isVideo, client: session.client) })
         }
-        .overlay(alignment: .topLeading) {
-            AssetsLargeFileBadge(asset: asset, source: model.source)
-            AssetsLocationBadge(asset: asset, source: model.source, arrangement: model.arrangement)
-        }
-        .macOriginalContainerItem(asset.map { OriginalTransfer(id: $0.id, isVideo: $0.isVideo, client: session.client) })
         .onAppear { model.cellAppeared(section: s, item: i) }
         .onTapGesture(count: 2) { if let asset { model.open(asset.id) } }
         .simultaneousGesture(TapGesture().onEnded { if let asset { model.click(asset.id) } })

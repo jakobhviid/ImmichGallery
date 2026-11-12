@@ -25,7 +25,10 @@ struct ImmichGalleryApp: App {
         .onChange(of: MacIntegrationRouter.shared.pending, initial: true) { openPendingIntents() }
         .onChange(of: MacIntegrationRouter.shared.widgetLinks, initial: true) { openWidgetLinks() } // Widget
         .onChange(of: MacIntegrationRouter.shared.crosslinks, initial: true) { openCrosslinks() } // Crosslink
-        .onChange(of: app.services.map(ObjectIdentifier.init)) { openPendingIntents(); openWidgetLinks(); openCrosslinks() }
+        .onChange(of: app.services.map(ObjectIdentifier.init)) {
+            CrosslinkReceiver.accountChanged() // Crosslink: links of the account before are dropped
+            openPendingIntents(); openWidgetLinks(); openCrosslinks()
+        }
         .commands { AppCommands(app: app); AdminCommands(app: app); UploadCommands(app: app); ViewerCommands(); MacIntegrationCommands(); UpdateCommands(updater: .shared) }
 
         AdminScene(app: app) // Admin
@@ -196,6 +199,8 @@ struct AppCommands: Commands {
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @AppStorage("showInspector") private var showInspector = false
 
+    private var overviewShown: Bool { libraryMode.map { $0.wrappedValue != .all } ?? false }
+
     /// Library's Years, Months or All Photos, with Photos' ⌘1, ⌘2 and ⌘3.
     private func libraryModeItem(_ mode: LibraryMode, key: KeyEquivalent) -> some View {
         Toggle(isOn: Binding(get: { libraryMode?.wrappedValue == mode }, set: { _ in libraryMode?.wrappedValue = mode })) {
@@ -250,10 +255,10 @@ struct AppCommands: Commands {
         CommandGroup(after: .pasteboard) {
             Button("Select All Photos") { grid?.selectAll() }
                 .keyboardShortcut("a", modifiers: .command)
-                .disabled(grid == nil || grid?.viewerID != nil)
+                .disabled(grid == nil || grid?.viewerID != nil || overviewShown)
             Button("Deselect All") { grid?.selection = [] }
                 .keyboardShortcut("a", modifiers: [.command, .shift])
-                .disabled(grid.map { $0.selection.isEmpty || $0.viewerID != nil } ?? true)
+                .disabled(overviewShown || (grid.map { $0.selection.isEmpty || $0.viewerID != nil } ?? true))
         }
 
         CommandGroup(after: .sidebar) {

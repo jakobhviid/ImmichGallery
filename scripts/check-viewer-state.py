@@ -24,12 +24,17 @@ class NSText: NSObject {}
 struct TestWindow { var firstResponder: NSObject? }
 @MainActor enum NSApp { static var keyWindow: TestWindow? }
 enum NSCursor { static func setHiddenUntilMouseMoves(_ hidden: Bool) {} }
-struct AssetItem { let id: String; var isVideo = false }
-enum PressKey { case leftArrow, rightArrow, space, escape, `return`, delete, deleteForward }
+struct AssetItem { let id: String; var isVideo = false; var livePhotoVideoID: String? = nil }
+enum PressKey { case leftArrow, rightArrow, space, escape, `return`, delete, deleteForward, character }
 struct PressModifiers: OptionSet {
     let rawValue: Int
     static let command = PressModifiers(rawValue: 1)
+    static let shift = PressModifiers(rawValue: 2)
+    static let option = PressModifiers(rawValue: 4)
+    static let control = PressModifiers(rawValue: 8)
 }
+enum ZoomRequest { case zoomIn, zoomOut, toggle }
+struct GridSourceStub { var albumID: String? }
 struct KeyPress {
     enum Result: Equatable { case handled, ignored }
     let key: PressKey
@@ -41,7 +46,9 @@ struct KeyPress {
     var selection: Set<String> = ["a"]
     var ids = ["a", "b", "c"]
     var delay = false
-    func toggleFavorite(_ ids: [String]) async {}
+    var source = GridSourceStub()
+    var favoriteToggles: [[String]] = []
+    func toggleFavorite(_ ids: [String]) async { favoriteToggles.append(ids) }
     func item(_ id: String) -> AssetItem? { ids.contains(id) ? AssetItem(id: id) : nil }
     func neighbor(of id: String, delta: Int) async -> AssetItem? {
         if delay { try? await Task.sleep(for: .milliseconds(20)) }
@@ -70,19 +77,26 @@ struct KeyPress {
     var settingsPresented = true
     var controlsVisible = false
 '''
-harness += '\n'.join(method(name) for name in ['neighbor', 'step', 'windowWillClose'])
+harness += '\n'.join(method(name) for name in ['neighbor', 'stepWithoutWrapping', 'step', 'windowWillClose'])
 harness += r'''
 }
 @MainActor final class ViewerKeyHarness {
     var viewer: ViewerState?
     var isPresentation = true
     let model: AssetGridModel
-    let item = AssetItem(id: "a")
-    var onDelete: ([String]) -> Void = { _ in }
+    var item = AssetItem(id: "a")
+    var playLive = false
+    var zooms: [ZoomRequest] = []
+    var deleted: [[String]] = []
+    var removed: [[String]] = []
+    lazy var onZoom: (ZoomRequest) -> Void = { [unowned self] in self.zooms.append($0) }
+    lazy var onDelete: ([String]) -> Void = { [unowned self] in self.deleted.append($0) }
+    lazy var onRemove: ([String]) -> Void = { [unowned self] in self.removed.append($0) }
     init(_ state: ViewerState) { viewer = state; model = state.model }
     func step(_ delta: Int) { viewer?.step(delta) }
 '''
-harness += method('handleKey', (repo / 'ImmichGallery/Views/Viewer/AssetViewer.swift').read_text()).replace('private func', 'func')
+viewer_source = (repo / 'ImmichGallery/Views/Viewer/AssetViewer.swift').read_text()
+harness += method('handleKey', viewer_source) + '\n' + method('delete', viewer_source)
 harness += r'''
 }
 @main struct Check {
@@ -106,6 +120,34 @@ harness += r'''
         assert(keyboardState.model.viewerID == "a", "Editing photo details must not navigate or close the viewer")
         NSApp.keyWindow = nil
 
+        // Photos' keys on the open photo: ⌥Space plays a Live Photo without closing, Z zooms, ⌫/⌘⌫ delete or remove.
+        keyboardState.slideshow = false
+        keys.isPresentation = false
+        keys.item = AssetItem(id: "a", livePhotoVideoID: "live")
+        assert(keys.handleKey(KeyPress(key: .space, modifiers: .option)) == .handled)
+        assert(keys.playLive && keyboardState.model.viewerID == "a", "Option-Space plays the Live Photo and keeps the viewer open")
+        keys.item = AssetItem(id: "a")
+        assert(keys.handleKey(KeyPress(key: .space, modifiers: .option)) == .handled)
+        assert(keys.playLive && keyboardState.model.viewerID == "a", "Option-Space without a Live Photo neither closes nor toggles")
+        assert(keys.handleKey(KeyPress(key: .character, characters: "z")) == .handled && keys.zooms == [.toggle], "Z zooms the photo")
+        assert(keys.handleKey(KeyPress(key: .character, modifiers: .command, characters: "z")) == .ignored && keys.zooms == [.toggle])
+        keys.item = AssetItem(id: "a", isVideo: true)
+        assert(keys.handleKey(KeyPress(key: .character, characters: "z")) == .ignored && keys.zooms == [.toggle], "Z doesn't zoom a video")
+        keys.item = AssetItem(id: "a")
+        assert(keys.handleKey(KeyPress(key: .character, characters: ".")) == .handled)
+        try? await Task.sleep(for: .milliseconds(20))
+        assert(keyboardState.model.favoriteToggles == [["a"]], "Period toggles Favorite")
+        assert(keys.handleKey(KeyPress(key: .character, characters: "q")) == .ignored)
+        assert(keys.handleKey(KeyPress(key: .deleteForward, modifiers: .shift)) == .ignored && keys.deleted.isEmpty)
+        assert(keys.handleKey(KeyPress(key: .delete, modifiers: .option)) == .ignored && keys.deleted.isEmpty)
+        assert(keys.handleKey(KeyPress(key: .delete, modifiers: .control)) == .ignored && keys.deleted.isEmpty)
+        assert(keys.handleKey(KeyPress(key: .delete)) == .handled && keys.deleted == [["a"]] && keys.removed.isEmpty, "Delete outside an album deletes")
+        keyboardState.model.source.albumID = "album"
+        assert(keys.handleKey(KeyPress(key: .delete)) == .handled && keys.removed == [["a"]] && keys.deleted == [["a"]], "Delete in an album removes from it")
+        assert(keys.handleKey(KeyPress(key: .deleteForward, modifiers: .command)) == .handled && keys.deleted == [["a"], ["a"]], "Command-Delete deletes even in an album")
+        keyboardState.model.source.albumID = nil
+        assert(keyboardState.model.viewerID == "a", "Deleting is left to the caller; the key doesn't close the viewer")
+
         let state = ViewerState()
         state.sequence = ["a", "c", "b"]
         state.sequenceIndex = Dictionary(uniqueKeysWithValues: state.sequence.enumerated().map { ($0.element, $0.offset) })
@@ -116,6 +158,18 @@ harness += r'''
         try? await Task.sleep(for: .milliseconds(50))
         assert(state.model.viewerID == "c" && state.model.selection == ["c"])
         assert(state.elapsed == 0 && state.videoStalledElapsed == 0 && state.rotation == 0)
+
+        state.stepWithoutWrapping(1)
+        try? await Task.sleep(for: .milliseconds(50))
+        assert(state.model.viewerID == "b", "Swipes move forward through the sequence")
+        state.stepWithoutWrapping(1)
+        try? await Task.sleep(for: .milliseconds(50))
+        assert(state.model.viewerID == "b", "Swipes stop at the end of a repeating sequence")
+        state.model.viewerID = "a"
+        state.stepWithoutWrapping(-1)
+        try? await Task.sleep(for: .milliseconds(50))
+        assert(state.model.viewerID == "a", "Swipes stop at the start of a repeating sequence")
+        state.model.viewerID = "c"
 
         state.sequence = ["c"]
         state.sequenceIndex = ["c": 0]
@@ -150,7 +204,7 @@ harness += r'''
         closing.windowWillClose(Notification(name: Notification.Name("close")))
         try? await Task.sleep(for: .milliseconds(50))
         assert(closing.model.viewerID == nil, "An in-flight navigation must not reopen the inline viewer")
-        print("Viewer state checks passed: keyboard, sequence, wraparound, coalescing, restart, boundary and close")
+        print("Viewer state checks passed: keyboard, sequence, wraparound, swipe boundaries, coalescing, restart, boundary and close")
     }
 }
 '''

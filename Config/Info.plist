@@ -29,14 +29,15 @@
 			<key>CFBundleURLName</key>
 			<string>$(PRODUCT_BUNDLE_IDENTIFIER).crosslink</string>
 			<key>CFBundleURLSchemes</key>
-			<array><string>immich-crosslink</string></array>
+			<array><string>$(IMMICH_CROSSLINK_SCHEME)</string></array>
 		</dict>
 	</array>
-	<!-- Crosslink: the announcement other Immich apps read without starting this one. -->
+	<!-- Crosslink: the announcement other Immich apps read without starting this one. Dev's version is one no app
+	     follows, and its scheme its own, so Dev never takes the public app's place (project build settings). -->
 	<key>ImmichCrosslink</key>
 	<dict>
 		<key>Version</key>
-		<string>0.2</string>
+		<string>$(IMMICH_CROSSLINK_VERSION)</string>
 		<key>Shows</key>
 		<array>
 			<string>asset</string>

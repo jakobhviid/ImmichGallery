@@ -2,7 +2,7 @@
 
 Debug builds are a separate **Immich Gallery Dev** application, with a blue/teal icon and a DEV badge. Release builds keep the public app's name, icon, and identity.
 
-The Dev app has its own bundle identifier (`dev.igol.ImmichGallery.Dev`), sandbox container, preferences, Keychain service, App Group, widget extension, and `immichgallery-dev` URL scheme. It does not migrate credentials from the public app. Sparkle updates are disabled in Dev so a published release cannot replace the local build.
+The Dev app has its own bundle identifier (`dev.igol.ImmichGallery.Dev`), sandbox container, preferences, Keychain service, App Group, widget extension, `immichgallery-dev` URL scheme, and Crosslink scheme `immich-crosslink-dev` (it never registers or announces the public `immich-crosslink`). It does not migrate credentials from the public app. Sparkle updates are disabled in Dev so a published release cannot replace the local build.
 
 ## Build and install
 

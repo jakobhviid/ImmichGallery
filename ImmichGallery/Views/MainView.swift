@@ -13,6 +13,7 @@ enum SidebarItem: Hashable {
 
 struct MainView: View {
     @Environment(LibrarySession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selection: SidebarItem? = .library
     @State private var search = SearchFieldModel()
     @State private var toolbarCompact = false
@@ -33,13 +34,10 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            SidebarView(selection: Binding(get: { selection }, set: { select($0) }), editing: $editingSidebar)
+            SidebarView(selection: $selection, editing: $editingSidebar)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
         } detail: {
             detail
-                .navigationDestination(for: CrosslinkDestination.self) { destination in // Crosslink
-                    AssetGridContainer(source: destination.source, title: Text(verbatim: destination.title))
-                }
                 .pageNavigation(navigation, item: selection ?? .library)
                 .id(selection)
                 .modifier(AccountPasswordBanner())
@@ -56,7 +54,7 @@ struct MainView: View {
         .modifier(AlbumPresentation()) // Albums
         .onChange(of: session.albumActions.navigationAlbumID) { _, id in
             if let id {
-                select(.album(id))
+                selection = .album(id)
                 session.albumActions.navigationAlbumID = nil
             }
         }
@@ -64,12 +62,16 @@ struct MainView: View {
         .onChange(of: editingSidebar) { _, editing in if editing { columnVisibility = .all } }
         .focusedSceneValue(\.librarySession, session)
         .focusedSceneValue(\.searchActions, SearchActions(
-            find: { select(.search); search.focus() },
-            filters: { select(.search); showSearchFilters = true }))
-        .onReceive(NotificationCenter.default.publisher(for: .viewerShowLibrary, object: session)) { _ in select(.library) }
+            find: { selection = .search; search.focus() },
+            filters: { selection = .search; showSearchFilters = true }))
+        .onReceive(NotificationCenter.default.publisher(for: .viewerShowLibrary, object: session)) { _ in selection = .library }
         .onReceive(NotificationCenter.default.publisher(for: .crosslinkShow, object: session)) { note in // Crosslink
             if let item = note.userInfo?["item"] as? Crosslink.Item { showCrosslink(item) }
         }
+        // Crosslink: another link came, or the window closed (also on signing out or switching accounts): what this
+        // window was still doing for a link is stale. Choosing, pushing and popping pages end it in `PageNavigation`.
+        .onReceive(NotificationCenter.default.publisher(for: .crosslinkArrived)) { _ in navigation.links.invalidate() }
+        .onDisappear { navigation.links.invalidate() }
         .onChange(of: search.submissions) {
             let query = search.text.trimmingCharacters(in: .whitespaces)
             if query.isEmpty {
@@ -77,88 +79,35 @@ struct MainView: View {
                 return
             }
             submittedSearch = query
-            select(.search)
+            selection = .search
         }
         .onChange(of: selection, initial: true) { _, newValue in
-            navigation.item = newValue ?? .library
-            navigation.reset()
+            navigation.selectionChanged(to: newValue)
             if newValue != .search { search.text = ""; submittedSearch = ""; showSearchFilters = false }
         }
         .onChange(of: session.sharing.receivedPartners.map(\.id)) { _, ids in
-            if case .partner(let id) = selection, !ids.contains(id) { select(.partners) }
+            if case .partner(let id) = selection, !ids.contains(id) { selection = .partners }
         }
         .onChange(of: search.text) { _, text in
             if text.isEmpty, selection == .search { submittedSearch = "" }
         }
+        .transaction { transaction in
+            if reduceMotion { transaction.animation = nil; transaction.disablesAnimations = true }
+        }
     }
 
-    /// Changes the page, clearing pages pushed on the old one first, so the new page's stack never sees them.
-    private func select(_ item: SidebarItem?) {
-        navigation.reset()
-        selection = item
-    }
-
-    // Crosslink: shows what a link from another app names, in the page Immich's web app would show it on.
+    // Crosslink: shows what a link from another app names. `PageNavigation` owns the link's tasks.
     private func showCrosslink(_ item: Crosslink.Item) {
-        switch item {
-        case .page(let page):
-            let target: SidebarItem = switch page {
-            case .photos: .library
-            case .albums: .albums
-            case .people: .people
-            case .places: .explore(.places)
-            case .favorites: .favorites
-            case .archive: .archive
-            }
-            select(target)
-        case .album(let id): select(.album(id))
-        case .person(let id): openPerson(id)
-        case .place(let place): open(.explore(.places), pushing: CrosslinkDestination.place(place))
-        case .asset(let id, let context):
-            let alone = { openWindow(id: "widget-photo", value: id) } // as the desktop widget shows a photo
-            switch context {
-            case .album(let album)?:
-                select(.album(album))
-                session.crosslinkReveal(id, in: .album(album), alone: alone)
-            case .person(let person)?:
-                openPerson(person) { session.crosslinkReveal(id, in: .person(person), alone: alone) }
-            case .favorites?:
-                select(.favorites)
-                session.crosslinkReveal(id, in: .favorites, alone: alone)
-            case .archive?:
-                select(.archive)
-                session.crosslinkReveal(id, in: .archive, alone: alone)
-            case .search(let place)?:
-                let destination = CrosslinkDestination.place(place)
-                open(.explore(.places), pushing: destination)
-                session.crosslinkReveal(id, in: destination.source, alone: alone)
-            case nil:
-                select(.library)
-                session.crosslinkReveal(id, in: .library, alone: alone)
-            }
-        }
-    }
-
-    /// Selects a page, then pushes onto it once its stack exists (a new selection makes a new stack).
-    private func open(_ page: SidebarItem, pushing value: some Hashable) {
-        select(page)
-        Task {
-            try? await Task.sleep(for: .milliseconds(80))
-            guard selection == page else { return } // the user, or the link, moved on meanwhile
-            navigation.item = page
-            navigation.reset()
-            navigation.open(value)
-        }
-    }
-
-    private func openPerson(_ id: String, then: @escaping () -> Void = {}) {
-        Task {
-            do {
-                let person = try await session.client.person(id)
-                open(.people, pushing: person)
-                then()
-            } catch { CrosslinkReceiver.cannotShow(error, session: session) }
-        }
+        let session = session
+        let client = session.client
+        navigation.showCrosslink(item, in: CrosslinkWindow(
+            select: { selection = $0 },
+            person: { try await client.person($0) },
+            reveal: { [openWindow, navigation] id, source, ticket in
+                session.crosslinkReveal(id, in: source, ticket: ticket, navigation: navigation.links,
+                                        alone: { openWindow(id: "widget-photo", value: id) }) // as a widget photo opens
+            },
+            cannotShow: { CrosslinkReceiver.cannotShow($0, session: session) }))
     }
 
     @ViewBuilder
@@ -179,7 +128,7 @@ struct MainView: View {
         case .albums:
             AlbumsView()
         case .album(let id):
-            AlbumDetailView(id: id, onClose: { select(.albums) }) // Albums
+            AlbumDetailView(id: id, onClose: { selection = .albums }) // Albums
         case .sharedLinks: SharedLinksView() // Sharing
         case .partners: PartnersView() // Sharing
         case .partner(let id): AssetGridContainer(source: .partner(id), title: Text(session.sharing.receivedPartners.first { $0.id == id }?.name ?? "Partner Library")) // Sharing

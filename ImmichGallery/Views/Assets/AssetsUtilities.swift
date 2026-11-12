@@ -25,6 +25,7 @@ struct AssetsContextMenu: View {
     var trashAction: String?
     var busy = false
     var trashDays: Int?
+    var similarPhotos = false
 }
 
 struct AssetsUtilitiesMenu: View {
@@ -40,7 +41,9 @@ struct AssetsUtilitiesMenu: View {
     }
 
     /// Pages where the menu would be empty leave it out. An album's actions are in its own menu.
-    static func hasItems(for source: GridSource) -> Bool { source == .trash || supportsLocation(source) }
+    static func hasItems(for source: GridSource) -> Bool {
+        source == .trash || supportsLocation(source) || SimilarPhotosMenuButton.isAvailable(source)
+    }
 
     var body: some View {
         Menu {
@@ -51,6 +54,9 @@ struct AssetsUtilitiesMenu: View {
             } else {
                 if Self.supportsLocation(model.source) {
                     Button("Assign Location…") { session.metadata.present(.location, ids: model.selection.sorted()) }.disabled(!model.canMutate(model.selection.sorted()))
+                }
+                if SimilarPhotosMenuButton.isAvailable(model.source) {
+                    SimilarPhotosMenuButton(isPresented: Bindable(utilities).similarPhotos)
                 }
             }
         } label: { Label("More", systemImage: "ellipsis") }
@@ -68,6 +74,7 @@ struct AssetsGridUtilities: ViewModifier {
     func body(content: Content) -> some View {
         let trashAction = utilities.trashAction
         content
+            .similarPhotosSheet(isPresented: Bindable(utilities).similarPhotos, model: model)
             .task {
                 if model.source == .trash {
                     let config: AssetsServerConfig? = try? await session.client.get("server/config")

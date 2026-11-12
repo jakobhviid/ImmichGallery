@@ -37,14 +37,19 @@ struct MetadataMenuItems: View {
 struct MetadataInspectorControls: View {
     @Environment(LibrarySession.self) private var session
     let asset: AssetResponse
-    @State private var description = ""
+    /// Started for this photo, and saved to it even when the selection has moved on by the time it is finished.
+    @State private var draft: DescriptionDraft
     @State private var ratingsEnabled = false
-    @State private var submittedDescription = ""
     @FocusState private var descriptionFocused: Bool
+
+    init(asset: AssetResponse) {
+        self.asset = asset
+        _draft = State(initialValue: DescriptionDraft(assetID: asset.id, saved: asset.exifInfo?.description ?? ""))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Add a Description", text: $description, axis: .vertical)
+            TextField("Add a Description", text: $draft.text, axis: .vertical)
                 .lineLimit(2...6)
                 .focused($descriptionFocused)
                 .onSubmit { saveDescription() }
@@ -54,7 +59,7 @@ struct MetadataInspectorControls: View {
                     descriptionFocused = false
                     return .handled
                 }
-            if description != (asset.exifInfo?.description ?? "") {
+            if draft.text != (asset.exifInfo?.description ?? "") {
                 Button("Save Description", action: saveDescription)
             }
             if ratingsEnabled {
@@ -77,12 +82,11 @@ struct MetadataInspectorControls: View {
                 MetadataMenuItems(ids: [asset.id], canEditImage: asset.type == .image && asset.livePhotoVideoId == nil)
             }
         }
-        .animation(.smooth(duration: 0.2), value: description != (asset.exifInfo?.description ?? ""))
+        .animation(.smooth(duration: 0.2), value: draft.text != (asset.exifInfo?.description ?? ""))
         .animation(.smooth(duration: 0.2), value: ratingsEnabled)
         .disabled(session.metadata.busy || asset.isTrashed || session.user?.id == nil || asset.ownerId != session.user?.id)
         .task(id: asset.id) {
-            description = asset.exifInfo?.description ?? ""
-            submittedDescription = description
+            if draft.assetID != asset.id { draft = DescriptionDraft(assetID: asset.id, saved: asset.exifInfo?.description ?? "") }
             ratingsEnabled = (try? await session.client.metadataPreferences().ratings?.enabled) == true
         }
         .onChange(of: descriptionFocused) { if !descriptionFocused { saveDescription() } }
@@ -90,13 +94,11 @@ struct MetadataInspectorControls: View {
     }
 
     private func saveDescription() {
-        guard description != submittedDescription else { return }
-        let value = description
-        let id = asset.id
-        submittedDescription = value
+        guard let change = draft.takeChange() else { return }
+        let saved = asset.exifInfo?.description ?? ""
         Task {
-            if !(await session.metadata.update(.init(ids: [id], description: value), session: session)) {
-                submittedDescription = asset.exifInfo?.description ?? ""
+            if !(await session.metadata.update(.init(ids: [change.assetID], description: change.description), session: session)) {
+                draft.saveFailed(change.description, saved: saved)
             }
         }
     }

@@ -1,9 +1,12 @@
 import Foundation
 
-struct ExploreFolderNode: Identifiable {
+struct ExploreFolderNode: Identifiable, Hashable {
     let id: String
     var children: [ExploreFolderNode]?
     var name: String { URL(fileURLWithPath: id).lastPathComponent }
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
     static func tree(_ paths: [String]) -> [Self] {
         var children: [String: Set<String>] = [:]
         for path in paths {
