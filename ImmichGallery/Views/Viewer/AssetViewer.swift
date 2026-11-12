@@ -44,6 +44,10 @@ struct AssetViewer: View {
     /// The backdrop behind the photo, fading as a pinch shrinks it.
     @State private var backdrop = 1.0
     @State private var pinching = false
+    /// The photo whose own HDR version is in (or that has none), so its neighbours' can load. The full-screen viewer
+    /// keeps one viewer from photo to photo.
+    @State private var detailLoadedID: String?
+    @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
 
     var body: some View {
         Group {
@@ -96,6 +100,9 @@ struct AssetViewer: View {
             if isPresentation { viewer?.close() } else if !closeOverlay() { model.viewerID = nil }
         }
         .task(id: item.id) { await prefetchNeighbours() }
+        .task(id: "\(item.id)-\(detailLoadedID == item.id)") {
+            if detailLoadedID == item.id || item.isVideo { await prefetchNeighbourHDR() }
+        }
     }
 
     /// As in Photos: ⌘⌫ deletes; ⌫ takes the photo out of an album, and deletes it elsewhere.
@@ -129,7 +136,7 @@ struct AssetViewer: View {
                                       onPinchChange(pinching)
                                   }
                               },
-                              onScaleChange: onScaleChange)
+                              onScaleChange: onScaleChange, onDetailLoaded: { [id = item.id] in detailLoadedID = id })
                     .id(item.id)
                 if playLive, let videoID = item.livePhotoVideoID {
                     VideoPlayerView(
@@ -174,6 +181,8 @@ struct AssetViewer: View {
             Image(systemName: symbol)
                 .font(.title2.weight(.semibold))
                 .frame(width: 36, height: 36)
+                // The whole circle takes the click, not only the arrow.
+                .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .adaptiveGlass(in: .circle, interactive: true)
@@ -190,11 +199,27 @@ struct AssetViewer: View {
         }
     }
 
+    private func neighbour(_ delta: Int) async -> AssetItem? {
+        await (isPresentation ? viewer?.neighbor(of: item.id, delta: delta) : model.neighbor(of: item.id, delta: delta))
+    }
+
     private func prefetchNeighbours() async {
         for delta in [1, -1] {
-            if let next = await (isPresentation ? viewer?.neighbor(of: item.id, delta: delta) : model.neighbor(of: item.id, delta: delta)), !next.isVideo {
+            if let next = await neighbour(delta), !next.isVideo {
                 _ = await session.pipeline.thumbnail(next.id, size: .preview)
             }
+        }
+    }
+
+    /// The neighbours' HDR versions, after this photo's own: they slide in as bright as they'll show, and show at once.
+    /// Downloads their originals, as opening them would.
+    private func prefetchNeighbourHDR() async {
+        guard showHDR, HDRPhotos.displaySupportsHDR else { return }
+        for delta in [1, -1] {
+            guard let next = await neighbour(delta), !next.isVideo, session.pipeline.cachedHDR(next.id) == nil,
+                  let asset = try? await session.client.asset(next.id), !Task.isCancelled,
+                  HDRPhotos.mayContainHDR(mimeType: asset.originalMimeType) else { continue }
+            _ = await session.pipeline.hdrOriginal(next.id, maxPixelSize: HDRPhotos.screenPixelSize, keeps: true)
         }
     }
 
@@ -266,6 +291,8 @@ private struct ZoomableImage: View {
     /// A pinch below fitted size, and nil when it ends.
     var onPinch: ((Double?) -> Void)?
     var onScaleChange: ((Double) -> Void)?
+    /// The HDR version is in, or the photo has none.
+    var onDetailLoaded: (() -> Void)?
     @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
 
     @State private var image: CGImage?
@@ -305,9 +332,9 @@ private struct ZoomableImage: View {
                     ProgressView().controlSize(.large)
                 }
             }
-            // The photo fades in over its blurred placeholder, and the HDR version over the photo.
+            // The photo fades in over its blurred placeholder. The HDR version replaces it without a fade: after a
+            // slide to the photo, a fade read as the slide fading in.
             .animation(.easeOut(duration: 0.2), value: image == nil)
-            .animation(.easeOut(duration: 0.3), value: hdrImage != nil)
             .frame(width: swapsAxes ? geo.size.height : geo.size.width, height: swapsAxes ? geo.size.width : geo.size.height)
             .rotationEffect(.degrees(Double(rotation)))
             .frame(width: geo.size.width, height: geo.size.height)
@@ -410,12 +437,15 @@ private struct ZoomableImage: View {
     /// so a zoom during the HDR load doesn't download the original twice.
     private func loadDetail() async {
         var hdr: CGImage?
-        if showHDR, HDRPhotos.displaySupportsHDR, await isHDRCandidate() {
+        if showHDR, HDRPhotos.displaySupportsHDR, !hasOriginal, let cached = session.pipeline.cachedHDR(item.id) {
+            hdr = cached
+        } else if showHDR, HDRPhotos.displaySupportsHDR, await isHDRCandidate() {
             let size = hasOriginal ? Self.zoomedHDRPixelSize : HDRPhotos.screenPixelSize
-            hdr = await session.pipeline.hdrOriginal(item.id, maxPixelSize: size)
+            hdr = await session.pipeline.hdrOriginal(item.id, maxPixelSize: size, keeps: !hasOriginal)
         }
         guard !Task.isCancelled else { return }
         hdrImage = hdr
+        onDetailLoaded?()
         if hdr == nil, hasOriginal, let original = await session.pipeline.original(item.id, edited: true), !Task.isCancelled {
             image = original
         }

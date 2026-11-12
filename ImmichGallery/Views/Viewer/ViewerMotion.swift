@@ -89,7 +89,16 @@ final class ViewerSlideLayerView: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
-        for photo in [currentLayer, incomingLayer] { photo.contentsGravity = .resizeAspect }
+        for photo in [currentLayer, incomingLayer] {
+            photo.contentsGravity = .resizeAspect
+            photo.minificationFilter = .trilinear
+            // As `HDRImageLayer`: an HDR photo slides as bright as the viewer shows it.
+            if #available(macOS 26, *) {
+                photo.preferredDynamicRange = .high
+            } else {
+                photo.wantsExtendedDynamicRangeContent = true
+            }
+        }
         layer?.addSublayer(backdrop)
         layer?.addSublayer(currentLayer)
         layer?.addSublayer(incomingLayer)

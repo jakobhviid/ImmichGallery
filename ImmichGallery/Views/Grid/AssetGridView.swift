@@ -52,6 +52,7 @@ struct AssetGridHost<Header: View>: View {
     @AppStorage("gridThumbnailSize") private var thumbnailSize = GridMetrics.defaultSize
     @AppStorage(GridMetrics.aspectRatioKey) private var aspectRatio = false
     @AppStorage(TimelineRail.shownKey) private var showsDateScroller = true
+    @AppStorage(HDRPhotos.enabledKey) private var showHDR = true
     @State private var pendingDelete: [String]?
     @State private var pendingRemoval: [String]?
     @State private var photoZoom: PhotoZoomRequest?
@@ -333,6 +334,11 @@ struct AssetGridHost<Header: View>: View {
         session.pipeline.cachedThumbnail(id, size: .preview) ?? session.pipeline.cachedThumbnail(id, size: .thumbnail)
     }
 
+    /// A photo to slide as the viewer shows it: its HDR version while that's in memory, otherwise its preview.
+    private func slidePicture(_ id: String) -> CGImage? {
+        (showHDR ? session.pipeline.cachedHDR(id) : nil) ?? cachedImage(id)
+    }
+
     private func photoViewer(_ item: AssetItem) -> AssetViewer {
         var viewer = AssetViewer(model: model, item: item, playLive: $playLive, onDelete: requestDelete,
                                  onTags: requestTags, onRemove: requestRemoval, zoomRequest: photoZoom, onZoom: zoomPhoto,
@@ -393,21 +399,21 @@ struct AssetGridHost<Header: View>: View {
     /// swapped without animating.
     private func slide(from old: String, to new: String) {
         guard !reduceMotion, expandedMap == nil, let a = model.order(of: old), let b = model.order(of: new),
-              let outgoing = cachedImage(old), let incoming = cachedImage(new) else { return }
+              let outgoing = slidePicture(old), let incoming = slidePicture(new) else { return }
         slider.slide(from: outgoing, to: incoming, direction: ViewerMotionLayout.direction(from: a, to: b), toID: new)
     }
 
     /// The photos follow a trackpad swipe: the open one, and the neighbour it uncovers.
     private func swipeDrag(_ width: CGFloat) {
-        guard let id = model.viewerID, let current = cachedImage(id) else { return }
-        slider.drag(width, current: current, previous: neighbors.previous.flatMap(cachedImage),
-                    next: neighbors.next.flatMap(cachedImage))
+        guard let id = model.viewerID, let current = slidePicture(id) else { return }
+        slider.drag(width, current: current, previous: neighbors.previous.flatMap(slidePicture),
+                    next: neighbors.next.flatMap(slidePicture))
     }
 
     /// The swipe ended: far enough, it finishes the step on the layers and moves to that photo; otherwise back.
     private func swipeEnd(_ direction: Int?) {
         let target = direction == 1 ? neighbors.next : direction == -1 ? neighbors.previous : nil
-        guard let target, cachedImage(target) != nil else {
+        guard let target, slidePicture(target) != nil else {
             slider.endDrag(direction: nil, toID: nil)
             return
         }

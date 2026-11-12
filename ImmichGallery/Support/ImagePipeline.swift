@@ -16,12 +16,36 @@ final class ImagePipeline: Sendable {
     nonisolated(unsafe) private var revision = 0
     /// Originals already found to be SDR, so the viewer doesn't download them again.
     nonisolated(unsafe) private var sdrOriginals: Set<String> = []
+    /// The last few HDR photos decoded at screen size, the most recently used last: the open photo and its neighbours,
+    /// so they slide as bright as they show and show at once when stepped to.
+    nonisolated(unsafe) private var hdrPhotos: [(id: String, image: CGImage)] = []
+    private static let hdrPhotoLimit = (count: 4, bytes: 640 << 20)
 
     init(client: ImmichClient) {
         self.client = client
         let cache = NSCache<NSString, CGImage>()
         cache.totalCostLimit = 512 << 20
         self.cache = cache
+    }
+
+    func cachedHDR(_ id: String) -> CGImage? {
+        evictionLock.withLock {
+            guard let index = hdrPhotos.firstIndex(where: { $0.id == id }) else { return nil }
+            let photo = hdrPhotos.remove(at: index)
+            hdrPhotos.append(photo)
+            return photo.image
+        }
+    }
+
+    /// Under `evictionLock`.
+    private func keepHDR(_ image: CGImage, for id: String) {
+        hdrPhotos.removeAll { $0.id == id }
+        hdrPhotos.append((id, image))
+        var bytes = hdrPhotos.reduce(0) { $0 + $1.image.bytesPerRow * $1.image.height }
+        while hdrPhotos.count > 1, hdrPhotos.count > Self.hdrPhotoLimit.count || bytes > Self.hdrPhotoLimit.bytes {
+            let oldest = hdrPhotos.removeFirst().image
+            bytes -= oldest.bytesPerRow * oldest.height
+        }
     }
 
     func cachedThumbnail(_ id: String, size: ImmichClient.ThumbnailSize, edited: Bool = true) -> CGImage? {
@@ -75,9 +99,9 @@ final class ImagePipeline: Sendable {
     }
 
     /// The original decoded to HDR, or nil when it has no gain map or HDR transfer function.
-    /// Not cached in memory: an HDR bitmap uses 8 bytes per pixel. The compressed original
-    /// stays in the URL cache, so returning to the photo only decodes it again.
-    func hdrOriginal(_ id: String, maxPixelSize: Int) async -> CGImage? {
+    /// An HDR bitmap uses 8 bytes per pixel, so only the last few at screen size (`keeps`) stay in memory
+    /// (`cachedHDR`). The compressed original stays in the URL cache, so returning to the photo later only decodes it.
+    func hdrOriginal(_ id: String, maxPixelSize: Int, keeps: Bool = false) async -> CGImage? {
         let key = "\(id)-hdr"
         let started = evictionLock.withLock { sdrOriginals.contains(id) ? nil : (revision, revisions[key, default: 0]) }
         let request = client.originalRequest(id, edited: true)
@@ -91,6 +115,7 @@ final class ImagePipeline: Sendable {
             }
             guard !Task.isCancelled else { return nil }
             guard let image, image.contentHeadroom > 1 else { sdrOriginals.insert(id); return nil }
+            if keeps { keepHDR(image, for: id) }
             return image
         }
     }
@@ -99,6 +124,7 @@ final class ImagePipeline: Sendable {
         evictionLock.withLock {
             revision += 1
             sdrOriginals.removeAll()
+            hdrPhotos.removeAll()
             cache.removeAllObjects()
             client.session.configuration.urlCache?.removeAllCachedResponses()
         }
@@ -110,6 +136,7 @@ final class ImagePipeline: Sendable {
             for id in ids {
                 sdrOriginals.remove(id)
                 revisions["\(id)-hdr", default: 0] += 1
+                hdrPhotos.removeAll { $0.id == id }
                 for edited in [true, false] {
                     for size in [ImmichClient.ThumbnailSize.thumbnail, .preview, .fullsize] {
                         evict(key: "\(id)-\(size.rawValue)-\(edited)", request: client.thumbnailRequest(id, size: size, edited: edited))
