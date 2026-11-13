@@ -23,15 +23,14 @@ struct PhotoPeopleRow: View {
     @Environment(LibrarySession.self) private var session
     let assetID: String
     let people: [AssetPerson]
+    var source: GridSource?
 
     var body: some View {
         ScrollView(.horizontal) {
             HStack(alignment: .top, spacing: 20) {
                 ForEach(people) { person in
                     Button {
-                        NotificationCenter.default.post(name: .crosslinkShow, object: session,
-                                                        userInfo: ["item": Crosslink.Item.asset(assetID, .person(person.id)),
-                                                                   "opensAsset": false])
+                        session.showFace(of: person.id, in: assetID, shownFrom: source)
                     } label: { PhotoPersonFace(person: person) }
                         .buttonStyle(.plain)
                         .help(person.name.isEmpty ? String(localized: "Unnamed Person") : person.name)
@@ -40,6 +39,50 @@ struct PhotoPeopleRow: View {
             .padding(.vertical, 2)
         }
         .scrollIndicators(.never)
+    }
+}
+
+extension LibrarySession {
+    /// A face on a photo, below it or in Info: the person's grid with the photo selected. Shown from that person's own
+    /// grid, the photo just closes into it; otherwise the window goes to the person's page. The rest of a double-click
+    /// is dropped, so its second click doesn't land on what appears instead.
+    func showFace(of personID: String, in assetID: String, shownFrom source: GridSource?) {
+        DoubleClickRest.drop()
+        guard source != .person(personID) else {
+            let model = gridModel(for: .person(personID))
+            // An open photo closes into its square, or scrolls the grid to it; only a selected one needs the scroll.
+            if model.viewerID == nil { model.viewerScrollTarget = assetID }
+            model.showSelected(assetID)
+            return
+        }
+        NotificationCenter.default.post(name: .crosslinkShow, object: self,
+                                        userInfo: ["item": Crosslink.Item.asset(assetID, .person(personID)),
+                                                   "opensAsset": false])
+    }
+}
+
+/// Drops the rest of a double-click after a click that changes what's under the pointer: its second click would
+/// otherwise land on what appeared, and could select or open a photo there, or repeat the click.
+@MainActor enum DoubleClickRest {
+    private static var monitor: Any?
+    private static var generation = 0
+
+    static func drop() {
+        stop()
+        generation += 1
+        let current = generation
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { event in
+            event.clickCount > 1 ? nil : event
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(NSEvent.doubleClickInterval))
+            if generation == current { stop() }
+        }
+    }
+
+    private static func stop() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
     }
 }
 

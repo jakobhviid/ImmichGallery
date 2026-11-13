@@ -323,7 +323,7 @@ final class CrosslinkRevealHost: CrosslinkAssetHost {
         session.closeViewer() // A full-screen viewer or slideshow from this window.
         let model = session.gridModel(for: source)
         model.viewerScrollTarget = id
-        if opens { model.open(id) } else { model.selection = [id] }
+        if opens { model.open(id) } else { model.showSelected(id) }
     }
 
     func showAlone(_ id: String) { alone() }

@@ -39,7 +39,7 @@ struct MainView: View {
         } detail: {
             detail
                 .pageNavigation(navigation, item: selection ?? .library)
-                .id(selection)
+                .id(PageStackID(item: selection, link: navigation.linkPages))
                 .modifier(AccountPasswordBanner())
                 .modifier(GlobalToolbar(session: session, level: .detailStack))
                 .onGeometryChange(for: Bool.self) { $0.size.width < 980 } action: { toolbarCompact = $0 }

@@ -6,6 +6,9 @@ import SwiftUI
     /// One path for each sidebar item, so switching items starts at the item's page.
     private var paths: [SidebarItem: NavigationPath] = [:]
     var item: SidebarItem = .library
+    /// Crosslink: counts the links that showed a page from its start, so the detail column builds a new stack for each
+    /// (`PageStackID`). Replacing a stack's pages in one go, SwiftUI sometimes went on showing the stack's start.
+    private(set) var linkPages = 0
     /// Crosslink: what a link is still doing in this window (fetching a person, loading a grid as far as a photo).
     /// The user moving (choosing a page, pushing, going back) makes it stale; the link's own pages do not.
     @ObservationIgnored let links = CrosslinkNavigation()
@@ -41,6 +44,7 @@ import SwiftUI
     func linkShow(_ item: SidebarItem) {
         self.item = item
         paths = [:]
+        linkPages += 1
     }
 
     /// Crosslink: a link pushes onto the page it shows, at once, if it is still current.
@@ -56,6 +60,13 @@ import SwiftUI
         transaction.disablesAnimations = true
         withTransaction(transaction) { paths[item] = path }
     }
+}
+
+/// What the detail column's stack is built for: a new one for each sidebar item chosen, and for each page a link shows
+/// from its start.
+struct PageStackID: Hashable {
+    let item: SidebarItem?
+    let link: Int
 }
 
 /// A grid opened from a page: a city, a tag, a folder, a partner, a spot on the map.

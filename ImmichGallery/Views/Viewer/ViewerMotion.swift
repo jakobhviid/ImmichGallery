@@ -48,15 +48,24 @@ struct ViewerMotion: Equatable {
     }
 
     /// The photos follow a swipe `width` across: the open one, and its neighbour on the side it uncovers.
-    func drag(_ width: CGFloat, current: CGImage, previous: CGImage?, next: CGImage?) {
+    func drag(_ width: CGFloat, current: CGImage, previous: ViewerSlideNeighbour, next: ViewerSlideNeighbour) {
         view?.drag(width, current: current, previous: previous, next: next)
     }
 
-    /// The swipe ended: the step to `toID` in `direction`, or back to the photo.
+    /// The swipe ended: the step to `toID` in `direction`, sliding the rest of the way, or at once when the photo
+    /// coming in had no picture to show; or back to the photo.
     func endDrag(direction: Int?, toID: String?) {
         swipedTo = direction == nil ? nil : toID
         view?.endDrag(direction: direction)
     }
+}
+
+/// A swipe's neighbour on one side: its picture, to slide in; a photo whose picture isn't ready, or that isn't known
+/// yet, which the photos move toward without showing it; or none, past the first or last photo.
+enum ViewerSlideNeighbour {
+    case picture(CGImage)
+    case pending
+    case end
 }
 
 /// `ViewerSlider`'s view: hidden, and passing clicks through, but while photos slide.
@@ -132,7 +141,7 @@ final class ViewerSlideLayerView: NSView {
         CATransaction.commit()
     }
 
-    func drag(_ width: CGFloat, current: CGImage, previous: CGImage?, next: CGImage?) {
+    func drag(_ width: CGFloat, current: CGImage, previous: ViewerSlideNeighbour, next: ViewerSlideNeighbour) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -143,15 +152,18 @@ final class ViewerSlideLayerView: NSView {
         // Moving right uncovers the previous photo, on the left; moving left the next one.
         let side = width > 0 ? -1 : 1
         let neighbour = side < 0 ? previous : next
+        let picture: CGImage? = if case .picture(let picture) = neighbour { picture } else { nil }
+        let pastTheEnd = if case .end = neighbour { true } else { false }
         // Past the first or the last photo, the photo gives a little and springs back.
-        let offset = neighbour == nil ? width / 3 : width
+        let offset = pastTheEnd ? width / 3 : width
         currentLayer.removeAllAnimations()
         incomingLayer.removeAllAnimations()
         currentLayer.position = CGPoint(x: middle.x + offset, y: middle.y)
-        dragSide = neighbour == nil ? 0 : side
-        incomingLayer.isHidden = neighbour == nil
-        if let neighbour {
-            incomingLayer.contents = neighbour
+        dragSide = pastTheEnd ? 0 : side
+        // A neighbour without a picture yet leaves its place empty.
+        incomingLayer.isHidden = picture == nil
+        if let picture {
+            incomingLayer.contents = picture
             incomingLayer.position = CGPoint(x: middle.x + offset + span * CGFloat(side), y: middle.y)
         }
         CATransaction.commit()
@@ -162,6 +174,14 @@ final class ViewerSlideLayerView: NSView {
         dragging = false
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        if let direction, direction == dragSide, incomingLayer.isHidden {
+            // The photo coming in had no picture to slide: the viewer shows it at once.
+            generation += 1
+            isHidden = true
+            currentLayer.contents = nil
+            CATransaction.commit()
+            return
+        }
         finish()
         let current = currentLayer.presentation()?.position ?? currentLayer.position
         let incoming = incomingLayer.presentation()?.position ?? incomingLayer.position

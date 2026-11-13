@@ -792,6 +792,15 @@ final class AssetGridModel {
         viewerID = id
     }
 
+    /// Selects `id` without opening it, closing a photo the grid had open: a face below a photo shows the person's grid
+    /// with that photo selected.
+    func showSelected(_ id: String) {
+        keyboardMoveGeneration = UUID()
+        selection = [id]
+        anchorID = id
+        viewerID = nil
+    }
+
     // MARK: Actions
 
     func setFavorite(_ ids: [String], _ value: Bool) async {

@@ -132,7 +132,13 @@ struct ViewerSwipeNavigation: NSViewRepresentable {
             guard let window, event.window === window, isCurrent() else { return event }
             guard isEnabled, isWindowActive(window),
                   visibleRect.contains(convert(event.locationInWindow, from: nil))
-            else { Self.tracker.reset(); return event }
+            else {
+                // A swipe the photos were following, dropped (the pointer left the photo, the window went to the
+                // back, a zoom): they go back.
+                if Self.tracker.dragWidth != nil { onDragEnd?(nil) }
+                Self.tracker.reset()
+                return event
+            }
             let id = ObjectIdentifier(event)
             if let last = Self.lastEvent, last.id == id, last.time == event.timestamp {
                 return last.result ? nil : event

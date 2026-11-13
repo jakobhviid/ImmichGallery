@@ -96,7 +96,10 @@ struct PeopleView: View {
         }
         .navigationTitle("People")
         .navigationDestination(for: Person.self) { person in
-            PersonDetailView(person: person)
+            // One page per person: the page keeps its person in its own state, and SwiftUI keeps a page while the
+            // stack holds a value of its type in its place, so a link replacing one person with another would
+            // otherwise go on showing the first.
+            PersonDetailView(person: person).id(person.id)
         }
         .pageToolbar("people") {
             ToolbarItem(id: "show", placement: .principal) {

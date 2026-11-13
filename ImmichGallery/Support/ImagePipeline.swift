@@ -20,12 +20,23 @@ final class ImagePipeline: Sendable {
     /// so they slide as bright as they show and show at once when stepped to.
     nonisolated(unsafe) private var hdrPhotos: [(id: String, image: CGImage)] = []
     private static let hdrPhotoLimit = (count: 4, bytes: 640 << 20)
+    /// Lets the kept HDR photos go when macOS runs short of memory.
+    private let memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical])
 
     init(client: ImmichClient) {
         self.client = client
         let cache = NSCache<NSString, CGImage>()
         cache.totalCostLimit = 512 << 20
         self.cache = cache
+        memoryPressure.setEventHandler { [weak self] in self?.releaseHDR() }
+        memoryPressure.resume()
+    }
+
+    deinit { memoryPressure.cancel() }
+
+    /// Lets the kept HDR photos go: when the photo closes, HDR is turned off, or memory runs short.
+    func releaseHDR() {
+        evictionLock.withLock { hdrPhotos.removeAll() }
     }
 
     func cachedHDR(_ id: String) -> CGImage? {

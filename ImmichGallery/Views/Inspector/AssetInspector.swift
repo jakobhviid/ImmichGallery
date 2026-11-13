@@ -8,6 +8,8 @@ struct AssetInspector: View {
     var layout: Layout = .panel
     /// Below the photo: double-clicking its place's map opens the map out over the photo.
     var onExpandMap: (PhotoPlace) -> Void = { _ in }
+    /// The grid the photo is shown from, so a face of the person whose grid it is closes the photo there.
+    var source: GridSource?
 
     enum Layout { case panel, belowPhoto }
 
@@ -69,7 +71,7 @@ struct AssetInspector: View {
                 if let people = asset.people, !people.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("People").font(.title2)
-                        PhotoPeopleRow(assetID: asset.id, people: people)
+                        PhotoPeopleRow(assetID: asset.id, people: people, source: source)
                     }
                     .padding(.bottom, 10)
                 }
@@ -146,7 +148,7 @@ struct AssetInspector: View {
 
             if layout == .panel {
                 section("People") {
-                    InspectorPeopleList(assetID: asset.id, people: asset.people ?? [])
+                    InspectorPeopleList(assetID: asset.id, people: asset.people ?? [], source: source)
                 }
             }
 

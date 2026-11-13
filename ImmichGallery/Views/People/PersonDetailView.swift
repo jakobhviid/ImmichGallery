@@ -200,14 +200,13 @@ struct InspectorPeopleList: View {
     @Environment(LibrarySession.self) private var session
     let assetID: String
     let people: [AssetPerson]
+    var source: GridSource?
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if people.isEmpty { Text("No people").foregroundStyle(.secondary) }
             ForEach(people) { person in
                 Button {
-                    NotificationCenter.default.post(name: .crosslinkShow, object: session,
-                                                    userInfo: ["item": Crosslink.Item.asset(assetID, .person(person.id)),
-                                                               "opensAsset": false])
+                    session.showFace(of: person.id, in: assetID, shownFrom: source)
                 } label: {
                     HStack(spacing: 8) {
                         InspectorPersonFace(personID: person.id)

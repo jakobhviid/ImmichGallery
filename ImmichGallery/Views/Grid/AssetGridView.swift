@@ -81,8 +81,9 @@ struct AssetGridHost<Header: View>: View {
     /// The photo's place, opened out over it from the map below it.
     @State private var expandedMap: PhotoPlace?
     @State private var slider = ViewerSlider()
-    /// The open photo's neighbours, for a swipe to uncover.
-    @State private var neighbors: (previous: String?, next: String?) = (nil, nil)
+    /// The open photo's neighbours, for a swipe to uncover: those of photo `id`, so a photo the viewer has just moved to
+    /// never uses its predecessor's.
+    @State private var neighbors: (id: String?, previous: String?, next: String?) = (nil, nil, nil)
     /// The pointer is over the page, for the open photo's side arrows.
     @State private var pointerOverViewer = false
 
@@ -149,17 +150,20 @@ struct AssetGridHost<Header: View>: View {
         // slide without animating: nothing in SwiftUI animates while the slide's layers move.
         .animation(shownMotion == nil && !(isStepping && !reduceMotion) ? .easeOut(duration: 0.18) : nil, value: model.viewerID)
         .task(id: model.viewerID) {
-            guard let id = model.viewerID else { neighbors = (nil, nil); return }
+            guard let id = model.viewerID else { neighbors = (nil, nil, nil); return }
             let previous = await model.neighbor(of: id, delta: -1)?.id
             let next = await model.neighbor(of: id, delta: 1)?.id
-            if model.viewerID == id { neighbors = (previous, next) }
+            if model.viewerID == id { neighbors = (id, previous, next) }
         }
         .onChange(of: model.viewerID) { old, new in
             revealsGrid = false
             if let old, let new { slide(from: old, to: new) }
             expandedMap = nil
             startMotion(from: old, to: new)
+            // The HDR photos kept for sliding, here or in the full-screen viewer, which closes through this too.
+            if new == nil { session.pipeline.releaseHDR() }
         }
+        .onChange(of: showHDR) { _, shown in if !shown { session.pipeline.releaseHDR() } }
         .onAppear { settledID = model.viewerID }
         .modifier(MetadataHost(model: model)) // Metadata
         .navigationTitle(viewerItem?.date.map { Text(ImmichDate.day($0)) } ?? (headerNamesPage ? Text(verbatim: "") : title))
@@ -187,7 +191,7 @@ struct AssetGridHost<Header: View>: View {
         .modifier(AssetsGridUtilities(model: model, utilities: utilities))
         .gridHeader(header, shown: !headerScrolls)
         .inspector(isPresented: Binding(get: { inspectorShown }, set: { showInspector = $0 })) {
-            AssetInspector(assetID: inspectedID)
+            AssetInspector(assetID: inspectedID, source: model.source)
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
         }
         .task(id: session.macGridRevision) { await model.loadIfNeeded() }
@@ -312,9 +316,12 @@ struct AssetGridHost<Header: View>: View {
     private func startMotion(from old: String?, to new: String?) {
         let generation = (motion?.generation ?? 0) + 1
         let next = makeMotion(from: old, to: new, generation: generation)
-        // A photo closing into a square off screen fades instead; the grid scrolls to it as it shows again. The grid
-        // doesn't follow while hidden behind a photo: scrolling it then made AppKit's layout loop and throw.
-        if let old, new == nil, next == nil { model.viewerScrollTarget = old }
+        // A photo closing into a square off screen fades instead; the grid scrolls to the selected photo as it shows
+        // again: the one that closed, unless a face below a photo chose another (`showSelected`). The grid doesn't
+        // follow while hidden behind a photo: scrolling it then made AppKit's layout loop and throw.
+        if let old, new == nil, next == nil {
+            model.viewerScrollTarget = model.selection.count == 1 ? model.selection.first : old
+        }
         settledID = new
         pinchedScale = nil
         motion = next
@@ -403,17 +410,45 @@ struct AssetGridHost<Header: View>: View {
         slider.slide(from: outgoing, to: incoming, direction: ViewerMotionLayout.direction(from: a, to: b), toID: new)
     }
 
+    /// The open photo's neighbours, once looked up for it.
+    private var openNeighbors: (previous: String?, next: String?)? {
+        guard let id = model.viewerID, neighbors.id == id else { return nil }
+        return (neighbors.previous, neighbors.next)
+    }
+
+    /// A swipe's neighbour on the side of `delta`, as the slide's layers show it.
+    private func slideNeighbour(_ delta: Int) -> ViewerSlideNeighbour {
+        guard let openNeighbors else { return .pending }
+        guard let id = delta > 0 ? openNeighbors.next : openNeighbors.previous else { return .end }
+        return slidePicture(id).map { .picture($0) } ?? .pending
+    }
+
     /// The photos follow a trackpad swipe: the open one, and the neighbour it uncovers.
     private func swipeDrag(_ width: CGFloat) {
         guard let id = model.viewerID, let current = slidePicture(id) else { return }
-        slider.drag(width, current: current, previous: neighbors.previous.flatMap(slidePicture),
-                    next: neighbors.next.flatMap(slidePicture))
+        slider.drag(width, current: current, previous: slideNeighbour(-1), next: slideNeighbour(1))
     }
 
-    /// The swipe ended: far enough, it finishes the step on the layers and moves to that photo; otherwise back.
+    /// The swipe ended: far enough, it moves to that photo, finishing the step on the layers when its picture was
+    /// showing and at once when it wasn't; otherwise back. Before the open photo's neighbours are known, it looks the
+    /// neighbour up, as the keys do.
     private func swipeEnd(_ direction: Int?) {
-        let target = direction == 1 ? neighbors.next : direction == -1 ? neighbors.previous : nil
-        guard let target, slidePicture(target) != nil else {
+        guard let id = model.viewerID, let direction else {
+            slider.endDrag(direction: nil, toID: nil)
+            return
+        }
+        if let openNeighbors {
+            step(to: direction > 0 ? openNeighbors.next : openNeighbors.previous, direction: direction)
+        } else {
+            Task {
+                let target = await model.neighbor(of: id, delta: direction)?.id
+                step(to: model.viewerID == id ? target : nil, direction: direction)
+            }
+        }
+    }
+
+    private func step(to target: String?, direction: Int) {
+        guard let target else {
             slider.endDrag(direction: nil, toID: nil)
             return
         }
